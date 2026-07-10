@@ -5,6 +5,7 @@ import { programFor } from '../cards/effects.js'
 import { canPlayCard } from '../cards/matching.js'
 import { controlledArmy } from './legal-intents.js'
 import { evaluateOutcome } from './outcome.js'
+import { positionKey } from './position-key.js'
 import { shuffleWithSeed } from '../random/seeded.js'
 
 export type ApplyResult = { state: GameState; events: GameEvent[] }
@@ -551,6 +552,8 @@ function endTurn(state: GameState, playerId: PlayerId, events: GameEvent[]): voi
     actionsUsed: 0,
     pendingEffect: null,
   }
+  const key = positionKey(state)
+  state.positionOccurrences[key] = (state.positionOccurrences[key] ?? 0) + 1
   emit(state, events, 'turn-ended', { playerId, nextPlayerId })
   const outcome = evaluateOutcome(state)
   if (outcome.kind === 'ongoing') return

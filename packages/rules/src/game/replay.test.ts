@@ -31,4 +31,17 @@ describe('deterministic replay', () => {
     expect(hashGameState(initial)).not.toBe(hashGameState(moved.state))
     expect(hashGameState(structuredClone(moved.state))).toBe(hashGameState(moved.state))
   })
+
+  it('reports the first state-hash checkpoint mismatch during replay', () => {
+    const initial = buildTestState({ phase: 'await-action' })
+    const intent = { type: 'basic-move', playerId: 'p1', intentId: 'tampered-opening', from: 'e2', to: 'e4' } as const
+    const replayWithCheckpoints = replayGame as unknown as (
+      initial: typeof initial,
+      intents: readonly [typeof intent],
+      checkpoints: Array<{ stateHash: string; events: unknown[] }>,
+    ) => unknown
+
+    expect(() => replayWithCheckpoints(initial, [intent], [{ stateHash: 'tampered', events: [] }]))
+      .toThrow('REPLAY_STATE_HASH_MISMATCH:0')
+  })
 })

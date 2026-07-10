@@ -1,6 +1,7 @@
 import { DEFAULT_POSITION } from 'chess.js'
 import type { ArmyColor, CardInstance, ChessPieceKind, GameState, PieceRecord, PlayerId, PlayerState, RuleSnapshot, Square } from '@uno-chess/protocol'
 import { buildDeck } from '../cards/deck.js'
+import { positionKey } from './position-key.js'
 import { shuffleWithSeed } from '../random/seeded.js'
 import { parseRuleSnapshot } from '../ruleset/schema.js'
 
@@ -32,7 +33,7 @@ export function createGame(input: CreateGameInput): GameState {
   const initialDiscard = drawPile.splice(initialDiscardIndex, 1)[0]
   if (!initialDiscard || initialDiscard.color === null) throw new Error('INITIAL_DISCARD_UNAVAILABLE')
 
-  return {
+  const state: GameState = {
     gameId: input.gameId,
     rules,
     seed: input.seed,
@@ -65,6 +66,8 @@ export function createGame(input: CreateGameInput): GameState {
     positionOccurrences: {},
     acceptedIntentIds: [],
   }
+  state.positionOccurrences[positionKey(state)] = 1
+  return state
 }
 
 function initialActivePieces(): Partial<Record<Square, PieceRecord>> {

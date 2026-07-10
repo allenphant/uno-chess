@@ -34,4 +34,11 @@ describe('hybrid outcomes', () => {
 
     expect(evaluateOutcome(state)).toEqual({ kind: 'draw', reason: 'halfmove-limit' })
   })
+
+  it('declares a draw when the current authoritative position has occurred three times', () => {
+    const state = buildTestState({ phase: 'turn-start' })
+    state.positionOccurrences = { 'current-position': 3 }
+
+    expect(evaluateOutcome(state)).toEqual({ kind: 'draw', reason: 'repetition' })
+  })
 })

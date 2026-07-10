@@ -12,6 +12,9 @@ export function evaluateOutcome(state: GameState): GameOutcome {
   if (state.board.halfmoveClock >= state.rules.chess.halfmoveLimit) {
     return { kind: 'draw', reason: 'halfmove-limit' }
   }
+  if (state.rules.chess.repetition && Object.values(state.positionOccurrences).some((occurrences) => occurrences >= 3)) {
+    return { kind: 'draw', reason: 'repetition' }
+  }
   const army = controlledArmy(state, state.activePlayerId)
   const enPassantTarget = state.board.enPassantWindow?.captureByArmy === army
     ? state.board.enPassantWindow.target
