@@ -70,3 +70,74 @@ export interface RuleSnapshot {
     disconnectExpiry: 'forfeit'
   }
 }
+
+export type ChessPieceKind = PieceKind | 'k'
+
+export interface PieceRecord {
+  id: string
+  army: ArmyColor
+  kind: ChessPieceKind
+  originalSquare: Square
+}
+
+export interface EnPassantWindow {
+  target: Square
+  captureByArmy: ArmyColor
+  expiresAfterTurnNumber: number
+}
+
+export interface BoardState {
+  fen: string
+  enPassantWindow: EnPassantWindow | null
+  capturedByArmy: Record<ArmyColor, PieceRecord[]>
+  halfmoveClock: number
+}
+
+export type PlayerStatus = { kind: 'sealed'; remainingTurns: number }
+
+export interface PlayerState {
+  id: PlayerId
+  hand: CardInstance[]
+  statuses: PlayerStatus[]
+}
+
+export interface DiscardFace {
+  kind: CardKind
+  color: CardColor
+}
+
+export type TurnPhase = 'turn-start' | 'await-overflow-discard' | 'await-action' | 'await-action-move' | 'await-effect-choice'
+
+export interface TurnState {
+  number: number
+  phase: TurnPhase
+  drewCard: boolean
+  playedCardId: CardId | null
+  actionBudget: 0 | 2 | 3
+  actionsUsed: number
+  pendingEffect: null | { kind: 'reinforce'; cardId: CardId } | { kind: 'wild-color'; cardId: CardId }
+}
+
+export type GameStatus =
+  | { kind: 'active' }
+  | { kind: 'finished'; winnerId: PlayerId | null; reason: 'checkmate' | 'stalemate' | 'repetition' | 'halfmove-limit' | 'resignation' | 'timeout' }
+
+export interface GameState {
+  gameId: string
+  rules: RuleSnapshot
+  seed: string
+  rngCursor: number
+  board: BoardState
+  playerOrder: [PlayerId, PlayerId]
+  players: Record<PlayerId, PlayerState>
+  controllerByArmy: Record<ArmyColor, PlayerId>
+  activePlayerId: PlayerId
+  drawPile: CardInstance[]
+  discardPile: CardInstance[]
+  discardFace: DiscardFace | null
+  turn: TurnState
+  status: GameStatus
+  eventSequence: number
+  positionOccurrences: Record<string, number>
+  acceptedIntentIds: string[]
+}

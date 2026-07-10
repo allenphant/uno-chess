@@ -1,4 +1,7 @@
 export { buildDeck } from './cards/deck.js'
+export { applyChessMove, fenForArmy, isArmyInCheck, legalChessMoves } from './chess/adapter.js'
+export { createGame } from './game/create-game.js'
+export { hashSeed, nextRandom, shuffleWithSeed } from './random/seeded.js'
 export { defaultRules } from './ruleset/default-preset.js'
 export { resolveRuleSnapshot, standardPreset } from './ruleset/preset-catalog.js'
 export { parseRuleSnapshot, RuleSnapshotSchema } from './ruleset/schema.js'
