@@ -1,0 +1,19 @@
+{
+  "name": "@uno-chess/rules",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@uno-chess/protocol": "0.0.0",
+    "chess.js": "^1.4.0",
+    "zod": "^4.4.3"
+  },
+  "scripts": {
+    "test": "vitest --passWithNoTests",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.json"
+  }
+}

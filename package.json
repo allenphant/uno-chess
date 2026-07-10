@@ -1,0 +1,25 @@
+{
+  "name": "uno-chess",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=24.14.0 <25"
+  },
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present -- --run",
+    "test:e2e": "playwright test",
+    "dev:web": "npm run dev --workspace @uno-chess/web"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  }
+}
