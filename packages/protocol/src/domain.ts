@@ -90,6 +90,7 @@ export interface BoardState {
   fen: string
   enPassantWindow: EnPassantWindow | null
   capturedByArmy: Record<ArmyColor, PieceRecord[]>
+  activePieces: Partial<Record<Square, PieceRecord>>
   halfmoveClock: number
 }
 
@@ -115,7 +116,9 @@ export interface TurnState {
   playedCardId: CardId | null
   actionBudget: 0 | 2 | 3
   actionsUsed: number
-  pendingEffect: null | { kind: 'reinforce'; cardId: CardId } | { kind: 'wild-color'; cardId: CardId }
+  pendingEffect: null
+    | { kind: 'reinforce'; cardId: CardId; nextOperationIndex: number }
+    | { kind: 'wild-color'; cardId: CardId; nextOperationIndex: number }
 }
 
 export type GameStatus =

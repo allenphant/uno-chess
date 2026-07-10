@@ -1,5 +1,5 @@
 import { DEFAULT_POSITION } from 'chess.js'
-import type { CardInstance, GameState, PlayerId, PlayerState, RuleSnapshot } from '@uno-chess/protocol'
+import type { ArmyColor, CardInstance, ChessPieceKind, GameState, PieceRecord, PlayerId, PlayerState, RuleSnapshot, Square } from '@uno-chess/protocol'
 import { buildDeck } from '../cards/deck.js'
 import { shuffleWithSeed } from '../random/seeded.js'
 import { parseRuleSnapshot } from '../ruleset/schema.js'
@@ -41,6 +41,7 @@ export function createGame(input: CreateGameInput): GameState {
       fen: DEFAULT_POSITION,
       enPassantWindow: null,
       capturedByArmy: { white: [], black: [] },
+      activePieces: initialActivePieces(),
       halfmoveClock: 0,
     },
     playerOrder: input.playerIds,
@@ -64,6 +65,30 @@ export function createGame(input: CreateGameInput): GameState {
     positionOccurrences: {},
     acceptedIntentIds: [],
   }
+}
+
+function initialActivePieces(): Partial<Record<Square, PieceRecord>> {
+  const pieces: Partial<Record<Square, PieceRecord>> = {}
+  const backRank: Array<[Square, ChessPieceKind]> = [
+    ['a1', 'r'], ['b1', 'n'], ['c1', 'b'], ['d1', 'q'], ['e1', 'k'], ['f1', 'b'], ['g1', 'n'], ['h1', 'r'],
+    ['a8', 'r'], ['b8', 'n'], ['c8', 'b'], ['d8', 'q'], ['e8', 'k'], ['f8', 'b'], ['g8', 'n'], ['h8', 'r'],
+  ]
+  for (const [square, kind] of backRank) addInitialPiece(pieces, square, kind)
+  for (const file of ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const) {
+    addInitialPiece(pieces, `${file}2`, 'p')
+    addInitialPiece(pieces, `${file}7`, 'p')
+  }
+  return pieces
+}
+
+function addInitialPiece(
+  pieces: Partial<Record<Square, PieceRecord>>,
+  square: Square,
+  kind: ChessPieceKind,
+): void {
+  const army: ArmyColor = square[1] === '1' || square[1] === '2' ? 'white' : 'black'
+  const name = ({ p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' } as const)[kind]
+  pieces[square] = { id: `${army}-${name}:${square}`, army, kind, originalSquare: square }
 }
 
 function drawCard(drawPile: CardInstance[]): CardInstance {

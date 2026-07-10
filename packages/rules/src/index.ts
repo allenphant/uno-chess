@@ -1,4 +1,5 @@
 export { buildDeck } from './cards/deck.js'
+export { programFor } from './cards/effects.js'
 export { canPlayCard } from './cards/matching.js'
 export { applyChessMove, fenForArmy, isArmyInCheck, legalChessMoves } from './chess/adapter.js'
 export { createGame } from './game/create-game.js'
