@@ -16,4 +16,10 @@ button { font: inherit; }
 .hand { grid-column: 1 / -1; display: flex; gap: .5rem; overflow-x: auto; padding: .75rem 0; }
 .card { min-width: 7rem; border: 0; border-radius: .6rem; color: white; padding: 1rem; text-transform: capitalize; }
 .card.red { background: #dc2626; }.card.yellow { background: #ca8a04; }.card.green { background: #16a34a; }.card.blue { background: #2563eb; }.card.wild { background: #6b7280; }
+.card-controls { display: flex; flex-wrap: wrap; gap: .5rem; grid-column: 1 / -1; }
+.card-controls button { border: 0; border-radius: .45rem; padding: .65rem .9rem; }
+.color-choice { display: flex; gap: .4rem; }
+.color-choice .red { background: #dc2626; color: white; }.color-choice .yellow { background: #ca8a04; color: white; }.color-choice .green { background: #16a34a; color: white; }.color-choice .blue { background: #2563eb; color: white; }
+.reinforcement-choice { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; }
+.reinforcement-choice p { flex-basis: 100%; margin: 0; }
 @media (max-width: 760px) { .game-shell { grid-template-columns: minmax(0, 1fr); }.turn-panel { order: -1; }.board { width: min(100%, calc(100dvh - 15rem)); margin-inline: auto; }.hand { grid-column: 1; } }

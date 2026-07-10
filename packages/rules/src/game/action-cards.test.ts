@@ -10,6 +10,7 @@ type State = {
   turn: { phase: string; actionBudget: number; actionsUsed: number }
 }
 type ApplyResult = { state: State; events: Array<{ type: string }> }
+type LegalMove = { from: string; to: string }
 
 function actionCard(kind: 'action-2' | 'action-3', color: Card['color']): Card {
   return { id: `${kind}:${color}:test`, kind, color }
@@ -28,6 +29,9 @@ describe('action cards', () => {
 
     const opened = applyIntent(state, { type: 'play-action-card', playerId: 'p1', intentId: 'action-open', cardId: card.id })
     expect(opened.state.turn).toMatchObject({ phase: 'await-action-move', actionBudget: 3, actionsUsed: 0 })
+    expect(api.getLegalActionMoves).toBeTypeOf('function')
+    const getLegalActionMoves = api.getLegalActionMoves as (game: State) => LegalMove[]
+    expect(getLegalActionMoves(opened.state).some((move) => move.from === 'e2' && move.to === 'e4')).toBe(true)
     const moved = applyIntent(opened.state, { type: 'action-move', playerId: 'p1', intentId: 'action-move', from: 'e2', to: 'e4' })
     const stopped = applyIntent(moved.state, { type: 'finish-action-card', playerId: 'p1', intentId: 'action-stop' })
 

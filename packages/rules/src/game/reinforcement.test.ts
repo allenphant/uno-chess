@@ -1,6 +1,6 @@
 import type { CardInstance, PieceRecord, RuleSnapshot, Square } from '@uno-chess/protocol'
 import { describe, expect, it } from 'vitest'
-import { applyIntent, buildTestState } from '../index.js'
+import { applyIntent, buildTestState, getLegalReinforcementOptions } from '../index.js'
 
 function beginReinforcement(input: {
   mode: RuleSnapshot['reinforce']['mode']
@@ -38,6 +38,7 @@ describe('Reinforce placement rules', () => {
     const piece: PieceRecord = { id: 'white-knight:b1', army: 'white', kind: 'n', originalSquare: 'b1' }
     const pending = beginReinforcement({ mode: 'classic-start-square', piece })
 
+    expect(getLegalReinforcementOptions(pending)).toEqual([{ pieceId: piece.id, kind: 'n', squares: ['b1'] }])
     expect(() => choose(pending, piece.id, 'c3')).toThrow('REINFORCEMENT_SQUARE_NOT_ALLOWED')
     expect(choose(pending, piece.id, 'b1').state.board.fen.split(' ')[0]).toBe('4k3/8/8/8/8/8/8/1N2K3')
   })

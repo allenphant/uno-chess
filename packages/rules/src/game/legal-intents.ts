@@ -9,6 +9,15 @@ export function controlledArmy(state: GameState, playerId: PlayerId): ArmyColor 
 
 export function getLegalBasicMoves(state: GameState): LegalChessMove[] {
   if (state.turn.phase !== 'await-action') return []
+  return getLegalMovesForActiveArmy(state)
+}
+
+export function getLegalActionMoves(state: GameState): LegalChessMove[] {
+  if (state.turn.phase !== 'await-action-move') return []
+  return getLegalMovesForActiveArmy(state)
+}
+
+function getLegalMovesForActiveArmy(state: GameState): LegalChessMove[] {
   const army = controlledArmy(state, state.activePlayerId)
   const enPassantTarget = state.board.enPassantWindow?.captureByArmy === army
     ? state.board.enPassantWindow.target

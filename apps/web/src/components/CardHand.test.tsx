@@ -16,13 +16,20 @@ describe('CardHand', () => {
     const SelectableCardHand = CardHand as unknown as ComponentType<{
       cards: CardInstance[]
       selectedCardId: string | null
+      playableCardIds: string[]
       onSelect: (cardId: string) => void
     }>
-    render(<SelectableCardHand cards={[testCard]} selectedCardId={null} onSelect={(cardId) => { selectedCardId = cardId }} />)
+    render(<SelectableCardHand cards={[testCard]} selectedCardId={null} playableCardIds={[testCard.id]} onSelect={(cardId) => { selectedCardId = cardId }} />)
 
     await userEvent.click(screen.getByRole('button', { name: 'action-2' }))
 
     expect(selectedCardId).toBe(testCard.id)
     expect(screen.getByRole('button', { name: 'action-2' })).toBeTruthy()
+  })
+
+  it('disables cards that cannot be played on the current discard', () => {
+    render(<CardHand cards={[testCard]} selectedCardId={null} playableCardIds={[]} onSelect={() => undefined} />)
+
+    expect(screen.getByRole('button', { name: 'action-2' }).getAttribute('disabled')).not.toBeNull()
   })
 })

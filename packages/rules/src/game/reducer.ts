@@ -9,6 +9,7 @@ import { positionKey } from './position-key.js'
 import { shuffleWithSeed } from '../random/seeded.js'
 
 export type ApplyResult = { state: GameState; events: GameEvent[] }
+export type ReinforcementOption = { pieceId: string; kind: string; squares: Square[] }
 
 export function applyIntent(input: GameState, intent: GameIntent): ApplyResult {
   if (input.acceptedIntentIds.includes(intent.intentId)) return { state: input, events: [] }
@@ -404,16 +405,21 @@ function observedPiece(
 }
 
 function hasLegalReinforcement(state: GameState, playerId: PlayerId): boolean {
+  return getLegalReinforcementOptions(state, playerId).length > 0
+}
+
+export function getLegalReinforcementOptions(state: GameState, playerId = state.activePlayerId): ReinforcementOption[] {
   const army = controlledArmy(state, playerId)
-  return state.board.capturedByArmy[army].some((piece) => (
-    state.rules.reinforce.allowedPieceKinds.includes(piece.kind as 'p' | 'n' | 'b' | 'r' | 'q')
-    && legalReinforcementSquares(state.board.fen, state.rules.reinforce.mode, piece, army).some((square) => {
-      const enPassantTarget = state.board.enPassantWindow?.captureByArmy === army
-        ? state.board.enPassantWindow.target
-        : null
-      return !isArmyInCheck({ fen: putPiece(state.board.fen, piece, square), army, enPassantTarget })
-    })
-  ))
+  const enPassantTarget = state.board.enPassantWindow?.captureByArmy === army
+    ? state.board.enPassantWindow.target
+    : null
+  return state.board.capturedByArmy[army].flatMap((piece) => {
+    if (!state.rules.reinforce.allowedPieceKinds.includes(piece.kind as 'p' | 'n' | 'b' | 'r' | 'q')) return []
+    const squares = legalReinforcementSquares(state.board.fen, state.rules.reinforce.mode, piece, army).filter((square) => (
+      !isArmyInCheck({ fen: putPiece(state.board.fen, piece, square), army, enPassantTarget })
+    ))
+    return squares.length > 0 ? [{ pieceId: piece.id, kind: piece.kind, squares }] : []
+  })
 }
 
 function legalReinforcementSquares(
