@@ -1,3 +1,5 @@
+import { LocalGamePage } from './game/LocalGamePage.js'
+
 export function App() {
-  return <main><h1>UNO Chess</h1></main>
+  return <LocalGamePage seed="local-demo" />
 }

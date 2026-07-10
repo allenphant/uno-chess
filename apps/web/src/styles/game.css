@@ -1,0 +1,17 @@
+:root { color: #f8fafc; background: #0f172a; font-family: Inter, system-ui, sans-serif; }
+* { box-sizing: border-box; }
+button { font: inherit; }
+.game-shell { display: grid; grid-template-columns: minmax(18rem, 72vh) minmax(16rem, 22rem); gap: 1rem; justify-content: center; padding: 1rem; }
+.game-shell > header { grid-column: 1 / -1; }
+.board { aspect-ratio: 1; display: grid; grid-template-columns: repeat(8, 1fr); border: .35rem solid #475569; touch-action: none; }
+.square { border: 0; font-size: clamp(1.55rem, 5vh, 3.3rem); display: grid; place-items: center; cursor: pointer; }
+.square.light { background: #f1f5f9; color: #0f172a; }
+.square.dark { background: #64748b; color: #f8fafc; }
+.square:focus-visible, .card:focus-visible { outline: .2rem solid #facc15; outline-offset: -.2rem; }
+.turn-panel { background: #1e293b; border-radius: .75rem; padding: 1rem; align-self: start; }
+.turn-panel button { background: #facc15; border: 0; border-radius: .45rem; color: #111827; font-weight: 700; padding: .7rem 1rem; }
+.turn-panel button:disabled, .card:disabled { opacity: .55; cursor: not-allowed; }
+.hand { grid-column: 1 / -1; display: flex; gap: .5rem; overflow-x: auto; padding: .75rem 0; }
+.card { min-width: 7rem; border: 0; border-radius: .6rem; color: white; padding: 1rem; text-transform: capitalize; }
+.card.red { background: #dc2626; }.card.yellow { background: #ca8a04; }.card.green { background: #16a34a; }.card.blue { background: #2563eb; }.card.wild { background: #6b7280; }
+@media (max-width: 760px) { .game-shell { grid-template-columns: minmax(0, 1fr); }.turn-panel { order: -1; }.board { width: min(100%, calc(100dvh - 15rem)); margin-inline: auto; }.hand { grid-column: 1; } }
