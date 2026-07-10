@@ -1,0 +1,28 @@
+/** @vitest-environment jsdom */
+import type { CardInstance } from '@uno-chess/protocol'
+import { cleanup, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import type { ComponentType } from 'react'
+import { afterEach, describe, expect, it } from 'vitest'
+import { CardHand } from './CardHand.js'
+
+afterEach(cleanup)
+
+const testCard: CardInstance = { id: 'action-2:red:test', kind: 'action-2', color: 'red' }
+
+describe('CardHand', () => {
+  it('selects a card for board play without removing it from the hand', async () => {
+    let selectedCardId: string | null = null
+    const SelectableCardHand = CardHand as unknown as ComponentType<{
+      cards: CardInstance[]
+      selectedCardId: string | null
+      onSelect: (cardId: string) => void
+    }>
+    render(<SelectableCardHand cards={[testCard]} selectedCardId={null} onSelect={(cardId) => { selectedCardId = cardId }} />)
+
+    await userEvent.click(screen.getByRole('button', { name: 'action-2' }))
+
+    expect(selectedCardId).toBe(testCard.id)
+    expect(screen.getByRole('button', { name: 'action-2' })).toBeTruthy()
+  })
+})

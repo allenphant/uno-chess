@@ -8,15 +8,16 @@ const glyphs: Record<string, string> = {
 export interface ChessBoardProps {
   fen: string
   perspective: ArmyColor
+  cardReady: boolean
 }
 
-export function ChessBoard({ fen, perspective }: ChessBoardProps) {
+export function ChessBoard({ fen, perspective, cardReady }: ChessBoardProps) {
   const pieces = piecesFromFen(fen)
   const ranks = perspective === 'white' ? [8, 7, 6, 5, 4, 3, 2, 1] : [1, 2, 3, 4, 5, 6, 7, 8]
   const files = perspective === 'white' ? ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] : ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
 
   return (
-    <div className="board" data-testid="board" role="grid" aria-label="Chess board">
+    <div className="board" data-testid="board" data-card-ready={String(cardReady)} role="grid" aria-label="Chess board">
       {ranks.flatMap((rank) => files.map((file) => {
         const square = `${file}${rank}` as Square
         const dark = (files.indexOf(file) + ranks.indexOf(rank)) % 2 === 1
