@@ -4,12 +4,14 @@ import { applyChessMove, isArmyInCheck, legalChessMoves, type AppliedChessMove }
 import { programFor } from '../cards/effects.js'
 import { canPlayCard } from '../cards/matching.js'
 import { controlledArmy } from './legal-intents.js'
+import { evaluateOutcome } from './outcome.js'
 import { shuffleWithSeed } from '../random/seeded.js'
 
 export type ApplyResult = { state: GameState; events: GameEvent[] }
 
 export function applyIntent(input: GameState, intent: GameIntent): ApplyResult {
   if (input.acceptedIntentIds.includes(intent.intentId)) return { state: input, events: [] }
+  if (input.status.kind === 'finished') throw new Error('GAME_FINISHED')
   if (intent.playerId !== input.activePlayerId) throw new Error('NOT_ACTIVE_PLAYER')
 
   const state = structuredClone(input)
@@ -550,6 +552,15 @@ function endTurn(state: GameState, playerId: PlayerId, events: GameEvent[]): voi
     pendingEffect: null,
   }
   emit(state, events, 'turn-ended', { playerId, nextPlayerId })
+  const outcome = evaluateOutcome(state)
+  if (outcome.kind === 'ongoing') return
+  state.status = outcome.kind === 'win'
+    ? { kind: 'finished', winnerId: outcome.winnerId, reason: outcome.reason }
+    : { kind: 'finished', winnerId: null, reason: outcome.reason }
+  emit(state, events, 'game-ended', {
+    winnerId: outcome.kind === 'win' ? outcome.winnerId : null,
+    reason: outcome.reason,
+  })
 }
 
 function getPlayer(state: GameState, playerId: PlayerId) {
