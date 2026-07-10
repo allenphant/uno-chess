@@ -9,9 +9,12 @@ export interface ChessBoardProps {
   fen: string
   perspective: ArmyColor
   cardReady: boolean
+  selectedSquare: Square | null
+  legalTargets: Square[]
+  onSquareClick: (square: Square) => void
 }
 
-export function ChessBoard({ fen, perspective, cardReady }: ChessBoardProps) {
+export function ChessBoard({ fen, perspective, cardReady, selectedSquare, legalTargets, onSquareClick }: ChessBoardProps) {
   const pieces = piecesFromFen(fen)
   const ranks = perspective === 'white' ? [8, 7, 6, 5, 4, 3, 2, 1] : [1, 2, 3, 4, 5, 6, 7, 8]
   const files = perspective === 'white' ? ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] : ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
@@ -21,7 +24,9 @@ export function ChessBoard({ fen, perspective, cardReady }: ChessBoardProps) {
       {ranks.flatMap((rank) => files.map((file) => {
         const square = `${file}${rank}` as Square
         const dark = (files.indexOf(file) + ranks.indexOf(rank)) % 2 === 1
-        return <button className={`square ${dark ? 'dark' : 'light'}`} key={square} role="gridcell" aria-label={square}>{glyphs[pieces[square] ?? ''] ?? ''}</button>
+        const selected = selectedSquare === square
+        const target = legalTargets.includes(square)
+        return <button className={`square ${dark ? 'dark' : 'light'}${selected ? ' selected' : ''}${target ? ' legal-target' : ''}`} key={square} role="gridcell" aria-label={square} onClick={() => onSquareClick(square)}>{glyphs[pieces[square] ?? ''] ?? ''}</button>
       }))}
     </div>
   )
