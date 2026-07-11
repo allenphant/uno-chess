@@ -12,4 +12,17 @@ describe('game board and card geometry', () => {
   it('uses a portrait playing-card ratio', () => {
     expect(css).toContain('aspect-ratio: 5 / 7')
   })
+
+  it('layers the temporary play zone without changing board layout', () => {
+    expect(css).toContain('.board-stage { position: relative;')
+    expect(css).toContain('.card-play-zone { position: absolute;')
+    expect(css).toContain('.card-play-zone.ready')
+  })
+
+  it('supports lifted preview, playable touch gestures, and reduced motion', () => {
+    expect(css).toContain('.card.previewing')
+    expect(css).toContain('.card.playable')
+    expect(css).toContain('@media (prefers-reduced-motion: reduce)')
+    expect(css).toContain('.card-play-zone { transition: none; }')
+  })
 })
