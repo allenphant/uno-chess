@@ -21,7 +21,8 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
   const [reinforcementPieceIds, setReinforcementPieceIds] = useState<string[]>([])
   const [reinforcementSquares, setReinforcementSquares] = useState<Square[]>([])
   const perspective = Object.entries(state.controllerByArmy).find(([, playerId]) => playerId === state.activePlayerId)?.[0] ?? 'white'
-  const playableCardIds = state.turn.phase === 'await-action' && state.discardFace
+  const cardsSealed = state.players[state.activePlayerId]?.statuses.some((status) => status.kind === 'sealed') ?? false
+  const playableCardIds = state.turn.phase === 'await-action' && !cardsSealed && state.discardFace
     ? view.self.hand.filter((card) => canPlayCard(card, state.discardFace!, state.rules)).map((card) => card.id)
     : []
   const selectedCard = view.self.hand.find((card) => card.id === selectedCardId) ?? null

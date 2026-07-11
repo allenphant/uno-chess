@@ -33,4 +33,13 @@ describe('TurnGuide', () => {
     rerender(<TurnGuide state={state} />)
     expect(screen.getByText('請選擇要復活的棋子，再放到亮起的格子。')).toBeTruthy()
   })
+
+  it('tells a sealed player to move a chess piece instead of playing a card', () => {
+    const state = buildTestState({ phase: 'await-action' })
+    state.players[state.activePlayerId]!.statuses = [{ kind: 'sealed', remainingTurns: 1 }]
+
+    render(<TurnGuide state={state} />)
+
+    expect(screen.getByText('手牌已被封印，本回合請移動一枚棋子。')).toBeTruthy()
+  })
 })

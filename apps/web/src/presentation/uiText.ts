@@ -27,6 +27,7 @@ const errors: Record<string, string> = {
   CARD_DOES_NOT_MATCH: '這張牌不符合目前的顏色或功能。',
   NOT_ACTIVE_PLAYER: '現在不是你的回合。',
   ILLEGAL_CHESS_MOVE: '這不是合法的西洋棋走法。',
+  CARDS_SEALED: '本回合手牌被封印，請改為移動一枚棋子。',
   GAME_FINISHED: '對局已經結束。',
 }
 
@@ -45,6 +46,7 @@ export function turnGuideText(state: GameState): string {
   }
   if (state.turn.phase === 'turn-start') return '正在自動抽牌……'
   if (state.turn.phase === 'await-overflow-discard') return '手牌已滿，請選一張牌棄掉。'
+  if (state.turn.phase === 'await-action' && state.players[state.activePlayerId]?.statuses.some((status) => status.kind === 'sealed')) return '手牌已被封印，本回合請移動一枚棋子。'
   if (state.turn.phase === 'await-action') return '請打出一張可用手牌，或直接移動一枚棋子。'
   if (state.turn.phase === 'await-action-move') return `行動牌生效中，還能移動 ${state.turn.actionBudget - state.turn.actionsUsed} 次。`
   if (state.turn.pendingEffect?.kind === 'wild-color') return '請選擇新的牌色。'
