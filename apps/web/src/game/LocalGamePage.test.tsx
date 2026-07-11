@@ -7,6 +7,13 @@ import { LocalGamePage } from './LocalGamePage.js'
 afterEach(cleanup)
 
 describe('LocalGamePage', () => {
+  it('renders a board-first arena with a separate match sidebar', () => {
+    render(<LocalGamePage seed="layout" />)
+
+    expect(screen.getByTestId('board-stage')).toBeTruthy()
+    expect(screen.getByTestId('match-sidebar')).toBeTruthy()
+  })
+
   it('draws then submits a legal basic chess move through square clicks', async () => {
     render(<LocalGamePage seed="click-move" />)
     await userEvent.click(screen.getByRole('button', { name: 'Draw card' }))

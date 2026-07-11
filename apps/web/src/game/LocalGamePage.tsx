@@ -84,12 +84,21 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
   }
 
   return <main className="game-shell">
-    <header><h1>UNO Chess</h1></header>
-    <TurnPanel state={state} draw={draw} drawDisabled={state.turn.phase !== 'turn-start'} error={error} />
-    {state.turn.phase === 'await-overflow-discard' ? <OverflowDiscard cards={view.self.hand} onDiscard={discardOverflow} /> : null}
-    <ChessBoard fen={view.board.fen} perspective={perspective as 'white' | 'black'} cardReady={selectedCardId !== null} selectedSquare={selectedSquare} legalTargets={legalTargets} onSquareClick={chooseSquare} />
-    <CardHand cards={view.self.hand} selectedCardId={selectedCardId} playableCardIds={playableCardIds} onCommit={playCard} onSelect={setSelectedCardId} />
-    <section className="card-controls" aria-label="Card controls">
+    <header className="game-masthead"><div className="brand-mark">U+C</div><div><p className="eyebrow">Local battle</p><h1>UNO Chess</h1></div></header>
+    <div className="game-arena">
+      <section className="board-stage" data-testid="board-stage" aria-label="Game board">
+        <ChessBoard fen={view.board.fen} perspective={perspective as 'white' | 'black'} cardReady={selectedCardId !== null} selectedSquare={selectedSquare} legalTargets={legalTargets} onSquareClick={chooseSquare} />
+      </section>
+      <aside className="match-sidebar" data-testid="match-sidebar" aria-label="Match information">
+        <TurnPanel state={state} draw={draw} drawDisabled={state.turn.phase !== 'turn-start'} error={error} />
+        {state.turn.phase === 'await-overflow-discard' ? <OverflowDiscard cards={view.self.hand} onDiscard={discardOverflow} /> : null}
+        <div className="discard-summary"><span>Top card</span><strong>{state.discardFace ? `${state.discardFace.color} ${state.discardFace.kind}` : 'None'}</strong></div>
+      </aside>
+    </div>
+    <section className="player-zone" aria-label="Active player area">
+      <div className="hand-heading"><div><p className="eyebrow">Player {state.activePlayerId}</p><h2>Your hand</h2></div><span>{view.self.hand.length}/{state.rules.hand.maximumSize} cards</span></div>
+      <CardHand cards={view.self.hand} selectedCardId={selectedCardId} playableCardIds={playableCardIds} onCommit={playCard} onSelect={setSelectedCardId} />
+      <section className="card-controls" aria-label="Card controls">
       <button disabled={!selectedCard} onClick={playSelectedCard}>Play selected card</button>
       {state.turn.phase === 'await-action-move' ? <button onClick={finishAction}>Finish card moves</button> : null}
       {state.turn.phase === 'await-effect-choice' && state.turn.pendingEffect?.kind === 'wild-color' ? <div className="color-choice" aria-label="Choose wild color">
@@ -100,6 +109,7 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
         {reinforcementOptions.map((option) => <button aria-pressed={reinforcementPieceIds.includes(option.pieceId)} disabled={reinforcementSquares.length > 0} key={option.pieceId} onClick={() => toggleReinforcementPiece(option.pieceId)}>Revive {option.kind} ({option.pieceId})</button>)}
         <button disabled={reinforcementPieceIds.length === 0 || reinforcementPieceIds.length !== reinforcementSquares.length} onClick={confirmReinforcement}>Confirm reinforcement</button>
       </div> : null}
+      </section>
     </section>
   </main>
 }
