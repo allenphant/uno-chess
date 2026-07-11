@@ -1,4 +1,4 @@
-import type { CardId, ChessPieceKind, PlayerId, Square } from './domain.js'
+import type { CardColor, CardId, CardKind, ChessPieceKind, PlayerId, Square } from './domain.js'
 
 interface GameEventBase {
   gameId: string
@@ -11,7 +11,7 @@ export type GameEvent =
   | (GameEventBase & { type: 'card-drawn'; playerId: PlayerId; cardId: CardId })
   | (GameEventBase & { type: 'card-overflow-discarded'; playerId: PlayerId; cardId: CardId })
   | (GameEventBase & { type: 'turn-action-opened'; playerId: PlayerId })
-  | (GameEventBase & { type: 'card-played'; playerId: PlayerId; cardId: CardId })
+  | (GameEventBase & { type: 'card-played'; playerId: PlayerId; cardId: CardId; kind: CardKind; color: CardColor | null })
   | (GameEventBase & { type: 'piece-moved'; playerId: PlayerId; from: Square; to: Square; san: string })
   | (GameEventBase & { type: 'piece-captured'; playerId: PlayerId; at: Square; piece: string })
   | (GameEventBase & { type: 'piece-reinforced'; playerId: PlayerId; pieceId: string; piece: ChessPieceKind; at: Square })

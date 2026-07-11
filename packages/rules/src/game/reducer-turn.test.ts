@@ -63,4 +63,19 @@ describe('turn flow', () => {
     expect(result.state.turn.phase).toBe('turn-start')
     expect(result.events.at(-1)?.type).toBe('turn-ended')
   })
+
+  it('records renderable card metadata when a card is played', () => {
+    const state = rules.buildTestState({ phase: 'await-action' })
+    const card = { id: 'action-red', kind: 'action-2', color: 'red' as const }
+    state.players.p1!.hand = [card]
+    state.discardFace = { kind: 'seal', color: 'red' }
+
+    const result = rules.applyIntent(state, {
+      type: 'play-action-card', playerId: 'p1', intentId: 'play-renderable-card', cardId: card.id,
+    })
+
+    expect(result.events.find((event) => event.type === 'card-played')).toMatchObject({
+      type: 'card-played', playerId: 'p1', cardId: card.id, kind: 'action-2', color: 'red',
+    })
+  })
 })

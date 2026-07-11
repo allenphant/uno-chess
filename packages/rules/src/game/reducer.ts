@@ -131,7 +131,7 @@ function playActionCard(state: GameState, playerId: PlayerId, cardId: CardId, ev
   state.turn.actionBudget = actionProgram.budget
   state.turn.actionsUsed = 0
   state.turn.phase = 'await-action-move'
-  emit(state, events, 'card-played', { playerId, cardId: card.id })
+  emit(state, events, 'card-played', { playerId, cardId: card.id, kind: card.kind, color: card.color })
 }
 
 function actionMove(
@@ -197,7 +197,7 @@ function playFunctionCard(state: GameState, playerId: PlayerId, cardId: CardId, 
   state.discardPile.push(card)
   if (card.color !== null) state.discardFace = { kind: card.kind, color: card.color }
   state.turn.playedCardId = card.id
-  emit(state, events, 'card-played', { playerId, cardId: card.id })
+  emit(state, events, 'card-played', { playerId, cardId: card.id, kind: card.kind, color: card.color })
 
   executeFunctionProgram(state, playerId, card.id, program, 0, events)
 }
