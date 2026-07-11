@@ -29,4 +29,21 @@ describe('LocalGamePage', () => {
     expect(screen.getByRole('gridcell', { name: 'e4' }).querySelector('.piece.white')).toBeTruthy()
     await waitFor(() => expect(screen.getByText('輪到玩家 2')).toBeTruthy())
   })
+
+  it('reviews a previous position from notation and returns to the live board', async () => {
+    render(<LocalGamePage seed="history-navigation" />)
+    await waitFor(() => expect(screen.getByText('請打出一張可用手牌，或直接移動一枚棋子。')).toBeTruthy())
+    await userEvent.click(screen.getByRole('gridcell', { name: 'e2' }))
+    await userEvent.click(screen.getByRole('gridcell', { name: 'e4' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'e4' })).toBeTruthy())
+
+    await userEvent.click(screen.getByRole('button', { name: '回到開局' }))
+    expect(screen.getByText('正在查看開局')).toBeTruthy()
+    expect(screen.getByRole('gridcell', { name: 'e2' }).querySelector('.piece.white')).toBeTruthy()
+    expect(screen.getByRole('gridcell', { name: 'e2' }).hasAttribute('disabled')).toBe(true)
+
+    await userEvent.click(screen.getByRole('button', { name: '回到目前局面' }))
+    expect(screen.queryByText('正在查看開局')).toBeNull()
+    expect(screen.getByRole('gridcell', { name: 'e4' }).querySelector('.piece.white')).toBeTruthy()
+  })
 })

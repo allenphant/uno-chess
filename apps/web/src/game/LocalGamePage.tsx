@@ -4,27 +4,35 @@ import { ChessBoard } from '../components/ChessBoard.js'
 import { TurnPanel } from '../components/TurnPanel.js'
 import { OverflowDiscard } from '../components/OverflowDiscard.js'
 import { TurnGuide } from '../components/TurnGuide.js'
+import { MoveHistory } from '../components/MoveHistory.js'
 import { useLocalGame } from './useLocalGame.js'
 import '../styles/game.css'
-import { useEffect, useState } from 'react'
-import { canPlayCard, getLegalActionMoves, getLegalBasicMoves, getLegalReinforcementOptions } from '@uno-chess/rules'
+import { useEffect, useMemo, useState } from 'react'
+import { canPlayCard, getLegalActionMoves, getLegalBasicMoves, getLegalReinforcementOptions, projectPlayerView } from '@uno-chess/rules'
 import type { CardColor, Square } from '@uno-chess/protocol'
 import { cardColorName, cardName, pieceName, playerName } from '../presentation/uiText.js'
 import type { CardDragVisualState } from '../input/useCardDrag.js'
+import { buildTimeline } from './matchTimeline.js'
 
 export interface LocalGamePageProps {
   seed: string
 }
 
 export function LocalGamePage({ seed }: LocalGamePageProps) {
-  const { state, view, error, dispatch, nextIntentId } = useLocalGame(seed)
+  const { state, view, error, events, checkpoints, dispatch, nextIntentId } = useLocalGame(seed)
+  const [historySequence, setHistorySequence] = useState<number | null>(null)
   const [activeCardDrag, setActiveCardDrag] = useState<CardDragVisualState | null>(null)
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
   const [reinforcementPieceIds, setReinforcementPieceIds] = useState<string[]>([])
   const [reinforcementSquares, setReinforcementSquares] = useState<Square[]>([])
-  const perspective = Object.entries(state.controllerByArmy).find(([, playerId]) => playerId === state.activePlayerId)?.[0] ?? 'white'
+  const timeline = useMemo(() => buildTimeline(events), [events])
+  const historicalState = historySequence === null ? null : checkpoints.find((checkpoint) => checkpoint.sequence === historySequence)?.state ?? checkpoints[0]?.state ?? null
+  const displayState = historicalState ?? state
+  const displayView = useMemo(() => projectPlayerView(displayState, displayState.activePlayerId), [displayState])
+  const reviewingHistory = historicalState !== null
+  const perspective = Object.entries(displayState.controllerByArmy).find(([, playerId]) => playerId === displayState.activePlayerId)?.[0] ?? 'white'
   const cardsSealed = state.players[state.activePlayerId]?.statuses.some((status) => status.kind === 'sealed') ?? false
-  const playableCardIds = state.turn.phase === 'await-action' && !cardsSealed && state.discardFace
+  const playableCardIds = !reviewingHistory && state.turn.phase === 'await-action' && !cardsSealed && state.discardFace
     ? view.self.hand.filter((card) => canPlayCard(card, state.discardFace!, state.rules)).map((card) => card.id)
     : []
   const unavailableReasonByCardId: Partial<Record<string, string>> = Object.fromEntries(view.self.hand
@@ -93,16 +101,18 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
 
   return <main className="game-shell">
     <header className="game-masthead"><div className="brand-mark">U+C</div><div><p className="eyebrow">本機對戰</p><h1>UNO 西洋棋</h1></div></header>
-    <TurnGuide state={state} />
+    <TurnGuide state={displayState} />
     <div className="game-arena">
       <section className="board-stage" data-testid="board-stage" aria-label="對戰棋盤">
-        <ChessBoard fen={view.board.fen} perspective={perspective as 'white' | 'black'} interactionLocked={activeCardDrag !== null} legalMoves={legalMoves} selectedSquare={selectedSquare} legalTargets={legalTargets} onMove={movePiece} onSquareClick={chooseSquare} />
+        {reviewingHistory ? <div className="history-mode" role="status"><span>{historySequence === 0 ? '正在查看開局' : `正在查看第 ${historySequence} 個事件`}</span><button onClick={() => setHistorySequence(null)}>回到目前局面</button></div> : null}
+        <ChessBoard fen={displayView.board.fen} perspective={perspective as 'white' | 'black'} interactionLocked={activeCardDrag !== null || reviewingHistory} legalMoves={reviewingHistory ? [] : legalMoves} selectedSquare={reviewingHistory ? null : selectedSquare} legalTargets={reviewingHistory ? [] : legalTargets} onMove={movePiece} onSquareClick={chooseSquare} />
         <CardPlayZone active={activeCardDrag !== null} ready={activeCardDrag?.overDropZone ?? false} />
       </section>
       <aside className="match-sidebar" data-testid="match-sidebar" aria-label="對局資訊">
-        <TurnPanel state={state} error={error} />
+        <TurnPanel state={displayState} error={error} />
         {state.turn.phase === 'await-overflow-discard' ? <OverflowDiscard cards={view.self.hand} onDiscard={discardOverflow} /> : null}
         <div className="discard-summary"><span>目前牌面</span><strong>{state.discardFace ? `${cardColorName(state.discardFace.color)} ${cardName(state.discardFace.kind)}` : '尚無牌面'}</strong></div>
+        <MoveHistory entries={timeline} selectedSequence={historySequence} onNavigate={setHistorySequence} />
       </aside>
     </div>
     <section className="player-zone" aria-label="目前玩家操作區">
