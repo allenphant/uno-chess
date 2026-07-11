@@ -1,6 +1,6 @@
 import type { GameIntent, GameState } from '@uno-chess/protocol'
 import { applyIntent, createGame, defaultRules, projectPlayerView } from '@uno-chess/rules'
-import { useMemo, useReducer, useRef } from 'react'
+import { useEffect, useMemo, useReducer, useRef } from 'react'
 
 type LocalState = { game: GameState; error: string | null }
 
@@ -22,6 +22,15 @@ export function useLocalGame(seed: string) {
   )
   const view = useMemo(() => projectPlayerView(local.game, local.game.activePlayerId), [local.game])
   const nextIntentId = (kind: string) => `${seed}:${kind}:${intentSequence.current++}`
+
+  useEffect(() => {
+    if (local.game.turn.phase !== 'turn-start') return
+    dispatch({
+      type: 'draw-for-turn',
+      playerId: local.game.activePlayerId,
+      intentId: `${seed}:auto-draw:${local.game.turn.number}:${local.game.activePlayerId}`,
+    })
+  }, [local.game.activePlayerId, local.game.turn.number, local.game.turn.phase, seed])
 
   return { state: local.game, view, error: local.error, dispatch, nextIntentId }
 }

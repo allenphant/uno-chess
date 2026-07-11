@@ -21,7 +21,7 @@ export function ChessBoard({ fen, perspective, cardReady, selectedSquare, legalT
   const files = perspective === 'white' ? ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] : ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
 
   return (
-    <div className="board" data-testid="board" data-card-drop-zone="true" data-card-ready={String(cardReady)} role="grid" aria-label="Chess board">
+    <div className="board" data-testid="board" data-card-drop-zone="true" data-card-ready={String(cardReady)} role="grid" aria-label="西洋棋盤">
       {ranks.flatMap((rank, rankIndex) => files.map((file, fileIndex) => {
         const square = `${file}${rank}` as Square
         const dark = (files.indexOf(file) + ranks.indexOf(rank)) % 2 === 1

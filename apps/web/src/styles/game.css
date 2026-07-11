@@ -13,6 +13,9 @@ button { font: inherit; }
 .brand-mark { display: grid; place-items: center; width: 3rem; aspect-ratio: 1; border-radius: 1rem; background: linear-gradient(145deg, #ef4444 0 48%, #facc15 49% 56%, #2563eb 57%); color: white; font-size: .8rem; font-weight: 900; transform: rotate(-5deg); box-shadow: 0 .55rem 1.2rem #0006; }
 .eyebrow { margin: 0 0 .15rem; color: #fbbf24; font-size: .7rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
 .game-arena { display: grid; grid-template-columns: minmax(0, 1fr) minmax(15rem, 20rem); gap: 1.25rem; align-items: start; }
+.turn-guide { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; padding: .85rem 1rem; border: 1px solid #fbbf2455; border-radius: .9rem; background: #42200699; box-shadow: 0 .7rem 1.5rem #0003; }
+.turn-guide > span { display: grid; place-items: center; width: 2rem; aspect-ratio: 1; border-radius: 50%; background: #facc15; color: #422006; font-weight: 900; }
+.turn-guide p { margin: 0; font-weight: 800; }
 .board-stage { display: grid; place-items: center; min-width: 0; padding: clamp(.5rem, 1.3vw, 1rem); border: 1px solid #ffffff12; border-radius: 1.25rem; background: linear-gradient(145deg, #26354a, #151e2e); box-shadow: 0 1.4rem 3.4rem #0007; }
 .board { width: min(100%, 72vh); aspect-ratio: 1; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); overflow: hidden; border: clamp(.38rem, 1vw, .72rem) solid #3f2b22; border-radius: .35rem; outline: 1px solid #d6ad72aa; box-shadow: inset 0 0 0 1px #0008, 0 .85rem 2rem #0008; touch-action: none; }
 .square { position: relative; isolation: isolate; min-width: 0; aspect-ratio: 1; border: 0; padding: 0; display: grid; place-items: center; cursor: pointer; font-size: clamp(1.75rem, 7.3vmin, 4.8rem); line-height: 1; transition: filter .13s ease, transform .13s ease, box-shadow .13s ease; }
@@ -49,7 +52,12 @@ button { font: inherit; }
 .hand-heading { display: flex; justify-content: space-between; align-items: end; gap: 1rem; margin-bottom: .75rem; }
 .hand-heading > span { color: #94a3b8; font-size: .8rem; }
 .hand { display: flex; gap: .7rem; min-height: 6.5rem; overflow-x: auto; padding: .35rem .1rem .75rem; }
-.card { position: relative; min-width: 8rem; min-height: 5.2rem; border: .22rem solid #fff; border-radius: 1rem; color: white; padding: .9rem; text-transform: capitalize; font-weight: 900; box-shadow: 0 .5rem 0 #0005, inset 0 0 0 .18rem #ffffff38; cursor: pointer; transition: transform .15s ease, filter .15s ease; }
+.card { position: relative; min-width: 9.5rem; min-height: 8.2rem; border: .22rem solid #fff; border-radius: 1rem; color: white; padding: .65rem; font-weight: 900; box-shadow: 0 .5rem 0 #0005, inset 0 0 0 .18rem #ffffff38; cursor: pointer; transition: transform .15s ease, filter .15s ease; }
+.card-face { width: 100%; height: 100%; display: grid; grid-template-rows: auto 1fr auto; gap: .35rem; border-radius: .65rem; padding: .45rem; background: #0002; text-align: left; }
+.card-title { display: flex; align-items: center; gap: .38rem; font-size: .82rem; }
+.card-color-dot { width: .65rem; aspect-ratio: 1; border-radius: 50%; background: currentColor; border: 1px solid #fff; box-shadow: 0 0 0 2px #0003; }
+.card-symbol { align-self: center; justify-self: center; font-family: Georgia, serif; font-size: 1.8rem; letter-spacing: .02em; white-space: nowrap; text-shadow: 0 .1rem .15rem #0008; }
+.card-effect { min-height: 2em; font-size: .68rem; line-height: 1.2; color: #fffde8; }
 .card:hover:not(:disabled), .card[aria-pressed='true'] { transform: translateY(-.38rem) rotate(-1deg); filter: saturate(1.18) brightness(1.08); }
 .card.dragging { transform: translateY(-.65rem) rotate(2deg) scale(1.03); }
 .card.red { background: linear-gradient(145deg, #ef4444, #991b1b); }.card.yellow { background: linear-gradient(145deg, #facc15, #a16207); color: #211600; }.card.green { background: linear-gradient(145deg, #22c55e, #166534); }.card.blue { background: linear-gradient(145deg, #3b82f6, #1e40af); }.card.wild { background: conic-gradient(#ef4444, #facc15, #22c55e, #3b82f6, #ef4444); text-shadow: 0 1px 3px #000; }
@@ -72,6 +80,7 @@ button { font: inherit; }
   .match-sidebar { grid-template-columns: 1fr; }
   .turn-panel { grid-row: auto; }
   .board { width: 100%; }
-  .card { min-width: 7rem; min-height: 4.7rem; }
+  .card { min-width: 8.4rem; min-height: 7.6rem; }
+  .card-effect { font-size: .64rem; }
 }
 @media (prefers-reduced-motion: reduce) { .square, .card { transition: none; } }

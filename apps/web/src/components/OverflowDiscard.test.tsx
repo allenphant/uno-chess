@@ -8,7 +8,7 @@ describe('OverflowDiscard', () => {
   it('submits the selected hand card for the required overflow discard', async () => {
     const onDiscard = vi.fn()
     render(<OverflowDiscard cards={[{ id: 'c1', kind: 'seal', color: 'red' }]} onDiscard={onDiscard} />)
-    await userEvent.click(screen.getByRole('button', { name: 'Discard seal' }))
+    await userEvent.click(screen.getByRole('button', { name: '棄掉「封印」' }))
     expect(onDiscard).toHaveBeenCalledWith('c1')
   })
 })

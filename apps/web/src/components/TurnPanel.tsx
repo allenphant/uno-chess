@@ -1,18 +1,16 @@
 import type { GameState } from '@uno-chess/protocol'
+import { gameErrorText, playerName } from '../presentation/uiText.js'
 
 export interface TurnPanelProps {
   state: GameState
-  draw: () => void
-  drawDisabled: boolean
   error: string | null
 }
 
-export function TurnPanel({ state, draw, drawDisabled, error }: TurnPanelProps) {
+export function TurnPanel({ state, error }: TurnPanelProps) {
   return <aside className="turn-panel" aria-live="polite">
-    <p>Player {state.activePlayerId}'s turn</p>
-    <p>Phase: {state.turn.phase}</p>
-    <p>Deck: {state.drawPile.length}</p>
-    <button onClick={draw} disabled={drawDisabled}>Draw card</button>
-    {error ? <p role="alert">{error}</p> : null}
+    <p>輪到{playerName(state.activePlayerId)}</p>
+    <p>第 {state.turn.number} 回合</p>
+    <p>牌庫：{state.drawPile.length} 張</p>
+    {error ? <p role="alert">{gameErrorText(error)}</p> : null}
   </aside>
 }

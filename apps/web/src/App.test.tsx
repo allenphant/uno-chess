@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { createElement, type ComponentType } from 'react'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
 afterEach(cleanup)
@@ -13,15 +13,16 @@ describe('App', () => {
     if (!appModule.App) return
 
     render(createElement(appModule.App))
-    expect(screen.getByRole('heading', { name: 'UNO Chess' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'UNO 西洋棋' })).toBeTruthy()
   })
 
-  it('renders the local game board and turn draw control', async () => {
+  it('renders the local game board and automatically opens the action phase', async () => {
     const appModule = await import('./App.js') as { App?: ComponentType }
     if (!appModule.App) throw new Error('APP_MODULE_MISSING')
 
     render(createElement(appModule.App))
     expect(screen.getByTestId('board')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Draw card' })).toBeTruthy()
+    await waitFor(() => expect(screen.getByText('請打出一張可用手牌，或直接移動一枚棋子。')).toBeTruthy())
+    expect(screen.queryByRole('button', { name: '抽牌' })).toBeNull()
   })
 })

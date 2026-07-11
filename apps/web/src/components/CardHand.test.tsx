@@ -21,15 +21,15 @@ describe('CardHand', () => {
     }>
     render(<SelectableCardHand cards={[testCard]} selectedCardId={null} playableCardIds={[testCard.id]} onSelect={(cardId) => { selectedCardId = cardId }} />)
 
-    await userEvent.click(screen.getByRole('button', { name: 'action-2' }))
+    await userEvent.click(screen.getByRole('button', { name: '紅色行動牌 2，最多移動兩次' }))
 
     expect(selectedCardId).toBe(testCard.id)
-    expect(screen.getByRole('button', { name: 'action-2' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: '紅色行動牌 2，最多移動兩次' })).toBeTruthy()
   })
 
   it('disables cards that cannot be played on the current discard', () => {
     render(<CardHand cards={[testCard]} selectedCardId={null} playableCardIds={[]} onSelect={() => undefined} />)
 
-    expect(screen.getByRole('button', { name: 'action-2' }).getAttribute('disabled')).not.toBeNull()
+    expect(screen.getByRole('button', { name: '紅色行動牌 2，最多移動兩次' }).getAttribute('disabled')).not.toBeNull()
   })
 })
