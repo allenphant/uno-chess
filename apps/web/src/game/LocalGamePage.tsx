@@ -71,6 +71,11 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
     capturedPieceIds: reinforcementPieceIds, squares: reinforcementSquares,
   })
 
+  const movePiece = (from: Square, to: Square) => {
+    dispatch({ type: state.turn.phase === 'await-action-move' ? 'action-move' : 'basic-move', playerId: state.activePlayerId, intentId: nextIntentId('chess-move'), from, to })
+    setSelectedSquare(null)
+  }
+
   const chooseSquare = (square: Square) => {
     if (state.turn.phase === 'await-effect-choice' && state.turn.pendingEffect?.kind === 'reinforce') {
       if (pendingReinforcement?.squares.includes(square)) setReinforcementSquares((squares) => [...squares, square])
@@ -79,8 +84,7 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
     if (selectedSquare) {
       const move = legalMoves.find((candidate) => candidate.from === selectedSquare && candidate.to === square)
       if (move) {
-        dispatch({ type: state.turn.phase === 'await-action-move' ? 'action-move' : 'basic-move', playerId: state.activePlayerId, intentId: nextIntentId('chess-move'), from: move.from, to: move.to })
-        setSelectedSquare(null)
+        movePiece(move.from, move.to)
         return
       }
     }
@@ -92,7 +96,7 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
     <TurnGuide state={state} />
     <div className="game-arena">
       <section className="board-stage" data-testid="board-stage" aria-label="對戰棋盤">
-        <ChessBoard fen={view.board.fen} perspective={perspective as 'white' | 'black'} interactionLocked={activeCardDrag !== null} selectedSquare={selectedSquare} legalTargets={legalTargets} onSquareClick={chooseSquare} />
+        <ChessBoard fen={view.board.fen} perspective={perspective as 'white' | 'black'} interactionLocked={activeCardDrag !== null} legalMoves={legalMoves} selectedSquare={selectedSquare} legalTargets={legalTargets} onMove={movePiece} onSquareClick={chooseSquare} />
         <CardPlayZone active={activeCardDrag !== null} ready={activeCardDrag?.overDropZone ?? false} />
       </section>
       <aside className="match-sidebar" data-testid="match-sidebar" aria-label="對局資訊">

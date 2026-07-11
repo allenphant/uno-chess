@@ -10,7 +10,7 @@ const initialFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
 
 describe('ChessBoard presentation', () => {
   it('keeps 64 logical cells while showing file and rank coordinates', () => {
-    render(<ChessBoard fen={initialFen} perspective="white" cardReady={false} selectedSquare={null} legalTargets={[]} onSquareClick={() => undefined} />)
+    render(<ChessBoard fen={initialFen} perspective="white" legalMoves={[]} selectedSquare={null} legalTargets={[]} onMove={() => undefined} onSquareClick={() => undefined} />)
 
     expect(screen.getAllByRole('gridcell')).toHaveLength(64)
     expect(screen.getByRole('gridcell', { name: 'a1' })).toBeTruthy()
@@ -22,7 +22,7 @@ describe('ChessBoard presentation', () => {
   })
 
   it('places black perspective coordinates on the corresponding visual edges', () => {
-    render(<ChessBoard fen={initialFen} perspective="black" cardReady={false} selectedSquare={null} legalTargets={[]} onSquareClick={() => undefined} />)
+    render(<ChessBoard fen={initialFen} perspective="black" legalMoves={[]} selectedSquare={null} legalTargets={[]} onMove={() => undefined} onSquareClick={() => undefined} />)
 
     expect(screen.getByTestId('coordinate-file-h')).toBeTruthy()
     expect(screen.getByTestId('coordinate-rank-8')).toBeTruthy()
@@ -30,10 +30,17 @@ describe('ChessBoard presentation', () => {
 
   it('ignores square clicks while a card drag locks the board', async () => {
     const onSquareClick = vi.fn()
-    render(<ChessBoard fen={initialFen} perspective="white" interactionLocked selectedSquare={null} legalTargets={[]} onSquareClick={onSquareClick} />)
+    render(<ChessBoard fen={initialFen} perspective="white" interactionLocked legalMoves={[]} selectedSquare={null} legalTargets={[]} onMove={() => undefined} onSquareClick={onSquareClick} />)
 
     await userEvent.click(screen.getByRole('gridcell', { name: 'e2' }))
 
     expect(onSquareClick).not.toHaveBeenCalled()
+  })
+
+  it('marks a piece square movable only when it has a legal destination', () => {
+    render(<ChessBoard fen={initialFen} perspective="white" interactionLocked={false} legalMoves={[{ from: 'e2', to: 'e4' }]} selectedSquare={null} legalTargets={[]} onMove={() => undefined} onSquareClick={() => undefined} />)
+
+    expect(screen.getByRole('gridcell', { name: 'e2' }).classList.contains('movable')).toBe(true)
+    expect(screen.getByRole('gridcell', { name: 'd2' }).classList.contains('movable')).toBe(false)
   })
 })

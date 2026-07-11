@@ -25,4 +25,9 @@ describe('game board and card geometry', () => {
     expect(css).toContain('@media (prefers-reduced-motion: reduce)')
     expect(css).toContain('.card-play-zone { transition: none; }')
   })
+
+  it('uses the complete board as the card drop zone and drags the glyph instead of a square', () => {
+    expect(css).toContain('.card-play-zone { position: absolute; inset: 0;')
+    expect(css).toContain('.piece.dragging')
+  })
 })

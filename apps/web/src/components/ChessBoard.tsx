@@ -1,4 +1,5 @@
 import type { ArmyColor, Square } from '@uno-chess/protocol'
+import type { CSSProperties } from 'react'
 import { usePieceDrag } from '../input/usePieceDrag.js'
 
 const glyphs: Record<string, string> = {
@@ -11,12 +12,14 @@ export interface ChessBoardProps {
   perspective: ArmyColor
   cardReady?: boolean
   interactionLocked?: boolean
+  legalMoves: ReadonlyArray<{ from: Square; to: Square }>
   selectedSquare: Square | null
   legalTargets: Square[]
+  onMove: (from: Square, to: Square) => void
   onSquareClick: (square: Square) => void
 }
 
-export function ChessBoard({ fen, perspective, interactionLocked = false, selectedSquare, legalTargets, onSquareClick }: ChessBoardProps) {
+export function ChessBoard({ fen, perspective, interactionLocked = false, legalMoves, selectedSquare, legalTargets, onMove, onSquareClick }: ChessBoardProps) {
   const pieces = piecesFromFen(fen)
   const ranks = perspective === 'white' ? [8, 7, 6, 5, 4, 3, 2, 1] : [1, 2, 3, 4, 5, 6, 7, 8]
   const files = perspective === 'white' ? ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] : ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
@@ -30,16 +33,19 @@ export function ChessBoard({ fen, perspective, interactionLocked = false, select
         const target = legalTargets.includes(square)
         const pieceToken = pieces[square] ?? ''
         const pieceArmy = pieceToken ? pieceToken === pieceToken.toUpperCase() ? 'white' : 'black' : null
-        return <BoardSquare dark={dark} fileLabel={rankIndex === ranks.length - 1 ? file : null} glyph={glyphs[pieceToken] ?? ''} interactionLocked={interactionLocked} key={square} legalTargets={legalTargets} pieceArmy={pieceArmy} rankLabel={fileIndex === 0 ? rank : null} selected={selected} square={square} target={target} onSquareClick={onSquareClick} />
+        const directTargets = legalMoves.filter((move) => move.from === square).map((move) => move.to)
+        return <BoardSquare dark={dark} directTargets={directTargets} fileLabel={rankIndex === ranks.length - 1 ? file : null} glyph={glyphs[pieceToken] ?? ''} interactionLocked={interactionLocked} key={square} pieceArmy={pieceArmy} rankLabel={fileIndex === 0 ? rank : null} selected={selected} square={square} target={target} onMove={onMove} onSquareClick={onSquareClick} />
       }))}
     </div>
   )
 }
 
-function BoardSquare({ dark, fileLabel, glyph, interactionLocked, legalTargets, pieceArmy, rankLabel, selected, square, target, onSquareClick }: { dark: boolean; fileLabel: string | null; glyph: string; interactionLocked: boolean; legalTargets: Square[]; pieceArmy: ArmyColor | null; rankLabel: number | null; selected: boolean; square: Square; target: boolean; onSquareClick: (square: Square) => void }) {
-  const drag = usePieceDrag({ enabled: selected && !interactionLocked, from: square, legalTargets, onCommit: ({ from, to }) => { onSquareClick(from); onSquareClick(to) } })
-  return <button className={`square ${dark ? 'dark' : 'light'}${selected ? ' selected' : ''}${target ? ' legal-target' : ''}${drag.dragging ? ' dragging' : ''}`} data-square={square} disabled={interactionLocked} role="gridcell" aria-label={square} onClick={() => { if (!interactionLocked) onSquareClick(square) }} onPointerCancel={drag.onPointerCancel} onPointerDown={drag.onPointerDown} onPointerUp={drag.onPointerUp}>
-    <span className={`piece${pieceArmy ? ` ${pieceArmy}` : ''}`} aria-hidden="true">{glyph}</span>
+function BoardSquare({ dark, directTargets, fileLabel, glyph, interactionLocked, pieceArmy, rankLabel, selected, square, target, onMove, onSquareClick }: { dark: boolean; directTargets: Square[]; fileLabel: string | null; glyph: string; interactionLocked: boolean; pieceArmy: ArmyColor | null; rankLabel: number | null; selected: boolean; square: Square; target: boolean; onMove: (from: Square, to: Square) => void; onSquareClick: (square: Square) => void }) {
+  const movable = glyph.length > 0 && directTargets.length > 0
+  const drag = usePieceDrag({ enabled: movable && !interactionLocked, from: square, legalTargets: directTargets, onStart: onSquareClick, onCommit: ({ from, to }) => onMove(from, to) })
+  const dragStyle = drag.offset ? { '--piece-x': `${drag.offset.x}px`, '--piece-y': `${drag.offset.y}px` } as CSSProperties : undefined
+  return <button className={`square ${dark ? 'dark' : 'light'}${movable ? ' movable' : ''}${selected ? ' selected' : ''}${target ? ' legal-target' : ''}`} data-square={square} disabled={interactionLocked} role="gridcell" aria-label={square} onClick={() => { if (!interactionLocked && !drag.consumeClick()) onSquareClick(square) }} onPointerCancel={drag.onPointerCancel} onPointerDown={drag.onPointerDown} onPointerMove={drag.onPointerMove} onPointerUp={drag.onPointerUp}>
+    <span className={`piece${pieceArmy ? ` ${pieceArmy}` : ''}${drag.dragging ? ' dragging' : ''}`} {...(dragStyle ? { style: dragStyle } : {})} aria-hidden="true">{glyph}</span>
     {rankLabel !== null ? <span className="coordinate coordinate-rank" data-testid={`coordinate-rank-${rankLabel}`} aria-hidden="true">{rankLabel}</span> : null}
     {fileLabel !== null ? <span className="coordinate coordinate-file" data-testid={`coordinate-file-${fileLabel}`} aria-hidden="true">{fileLabel}</span> : null}
   </button>
