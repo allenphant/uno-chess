@@ -3,33 +3,63 @@ import type { CardInstance } from '@uno-chess/protocol'
 import { cleanup, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ComponentType } from 'react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CardHand } from './CardHand.js'
 
 afterEach(cleanup)
 
 const testCard: CardInstance = { id: 'action-2:red:test', kind: 'action-2', color: 'red' }
+const cardName = '紅色行動牌 2，最多移動兩次'
+const TestableCardHand = CardHand as unknown as ComponentType<{
+  cards: CardInstance[]
+  playableCardIds: string[]
+  unavailableReasonByCardId: Partial<Record<string, string>>
+  onCommit: (cardId: string) => void
+  onDragStateChange: () => void
+  selectedCardId?: string | null
+  onSelect?: (cardId: string) => void
+}>
+const legacyProps = { selectedCardId: null, onSelect: () => undefined }
 
 describe('CardHand', () => {
-  it('selects a card for board play without removing it from the hand', async () => {
-    let selectedCardId: string | null = null
-    const SelectableCardHand = CardHand as unknown as ComponentType<{
-      cards: CardInstance[]
-      selectedCardId: string | null
-      playableCardIds: string[]
-      onSelect: (cardId: string) => void
-    }>
-    render(<SelectableCardHand cards={[testCard]} selectedCardId={null} playableCardIds={[testCard.id]} onSelect={(cardId) => { selectedCardId = cardId }} />)
+  it('previews a playable card on click without committing it', async () => {
+    const onCommit = vi.fn()
+    render(<TestableCardHand {...legacyProps} cards={[testCard]} playableCardIds={[testCard.id]} unavailableReasonByCardId={{}} onCommit={onCommit} onDragStateChange={() => undefined} />)
+    const card = screen.getByRole('button', { name: cardName })
 
-    await userEvent.click(screen.getByRole('button', { name: '紅色行動牌 2，最多移動兩次' }))
+    await userEvent.click(card)
 
-    expect(selectedCardId).toBe(testCard.id)
-    expect(screen.getByRole('button', { name: '紅色行動牌 2，最多移動兩次' })).toBeTruthy()
+    expect(card.getAttribute('aria-pressed')).toBe('true')
+    expect(card.classList.contains('previewing')).toBe(true)
+    expect(onCommit).not.toHaveBeenCalled()
   })
 
-  it('disables cards that cannot be played on the current discard', () => {
-    render(<CardHand cards={[testCard]} selectedCardId={null} playableCardIds={[]} onSelect={() => undefined} />)
+  it('keeps an illegal card previewable and explains why it cannot be played', async () => {
+    render(<TestableCardHand
+      {...legacyProps}
+      cards={[testCard]}
+      playableCardIds={[]}
+      unavailableReasonByCardId={{ [testCard.id]: '這張牌不符合目前顏色或功能。' }}
+      onCommit={() => undefined}
+      onDragStateChange={() => undefined}
+    />)
+    const card = screen.getByRole('button', { name: cardName })
 
-    expect(screen.getByRole('button', { name: '紅色行動牌 2，最多移動兩次' }).getAttribute('disabled')).not.toBeNull()
+    expect(card.hasAttribute('disabled')).toBe(false)
+    expect(card.getAttribute('aria-disabled')).toBe('true')
+    await userEvent.click(card)
+
+    expect(card.getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByText('這張牌不符合目前顏色或功能。')).toBeTruthy()
+  })
+
+  it('closes a preview when the player clicks outside the hand', async () => {
+    render(<><TestableCardHand {...legacyProps} cards={[testCard]} playableCardIds={[testCard.id]} unavailableReasonByCardId={{}} onCommit={() => undefined} onDragStateChange={() => undefined} /><button>棋盤外</button></>)
+    const card = screen.getByRole('button', { name: cardName })
+    await userEvent.click(card)
+
+    await userEvent.click(screen.getByRole('button', { name: '棋盤外' }))
+
+    expect(card.getAttribute('aria-pressed')).toBe('false')
   })
 })

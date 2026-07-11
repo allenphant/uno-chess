@@ -1,4 +1,5 @@
 import { CardHand } from '../components/CardHand.js'
+import { CardPlayZone } from '../components/CardPlayZone.js'
 import { ChessBoard } from '../components/ChessBoard.js'
 import { TurnPanel } from '../components/TurnPanel.js'
 import { OverflowDiscard } from '../components/OverflowDiscard.js'
@@ -9,6 +10,7 @@ import { useEffect, useState } from 'react'
 import { canPlayCard, getLegalActionMoves, getLegalBasicMoves, getLegalReinforcementOptions } from '@uno-chess/rules'
 import type { CardColor, Square } from '@uno-chess/protocol'
 import { cardColorName, cardName, pieceName, playerName } from '../presentation/uiText.js'
+import type { CardDragVisualState } from '../input/useCardDrag.js'
 
 export interface LocalGamePageProps {
   seed: string
@@ -16,7 +18,7 @@ export interface LocalGamePageProps {
 
 export function LocalGamePage({ seed }: LocalGamePageProps) {
   const { state, view, error, dispatch, nextIntentId } = useLocalGame(seed)
-  const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
+  const [activeCardDrag, setActiveCardDrag] = useState<CardDragVisualState | null>(null)
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
   const [reinforcementPieceIds, setReinforcementPieceIds] = useState<string[]>([])
   const [reinforcementSquares, setReinforcementSquares] = useState<Square[]>([])
@@ -25,7 +27,9 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
   const playableCardIds = state.turn.phase === 'await-action' && !cardsSealed && state.discardFace
     ? view.self.hand.filter((card) => canPlayCard(card, state.discardFace!, state.rules)).map((card) => card.id)
     : []
-  const selectedCard = view.self.hand.find((card) => card.id === selectedCardId) ?? null
+  const unavailableReasonByCardId: Partial<Record<string, string>> = Object.fromEntries(view.self.hand
+    .filter((card) => !playableCardIds.includes(card.id))
+    .map((card) => [card.id, cardsSealed ? '本回合手牌已被封印。' : '這張牌不符合目前顏色或功能。']))
   const legalMoves = state.turn.phase === 'await-action' ? getLegalBasicMoves(state) : getLegalActionMoves(state)
   const reinforcementOptions = getLegalReinforcementOptions(state)
   const pendingReinforcementPieceId = reinforcementPieceIds[reinforcementSquares.length]
@@ -35,7 +39,7 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
     : selectedSquare ? legalMoves.filter((move) => move.from === selectedSquare).map((move) => move.to) : []
 
   useEffect(() => {
-    setSelectedCardId(null)
+    setActiveCardDrag(null)
     setSelectedSquare(null)
     setReinforcementPieceIds([])
     setReinforcementSquares([])
@@ -53,8 +57,6 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
       cardId: card.id,
     })
   }
-  const playSelectedCard = () => selectedCard && playCard(selectedCard.id)
-
   const finishAction = () => dispatch({ type: 'finish-action-card', playerId: state.activePlayerId, intentId: nextIntentId('finish-action') })
   const discardOverflow = (cardId: string) => dispatch({ type: 'discard-overflow', playerId: state.activePlayerId, intentId: nextIntentId('overflow'), cardId })
   const chooseWildColor = (color: CardColor) => dispatch({ type: 'choose-wild-color', playerId: state.activePlayerId, intentId: nextIntentId('wild-color'), color })
@@ -90,7 +92,8 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
     <TurnGuide state={state} />
     <div className="game-arena">
       <section className="board-stage" data-testid="board-stage" aria-label="對戰棋盤">
-        <ChessBoard fen={view.board.fen} perspective={perspective as 'white' | 'black'} cardReady={selectedCardId !== null} selectedSquare={selectedSquare} legalTargets={legalTargets} onSquareClick={chooseSquare} />
+        <ChessBoard fen={view.board.fen} perspective={perspective as 'white' | 'black'} interactionLocked={activeCardDrag !== null} selectedSquare={selectedSquare} legalTargets={legalTargets} onSquareClick={chooseSquare} />
+        <CardPlayZone active={activeCardDrag !== null} ready={activeCardDrag?.overDropZone ?? false} />
       </section>
       <aside className="match-sidebar" data-testid="match-sidebar" aria-label="對局資訊">
         <TurnPanel state={state} error={error} />
@@ -100,9 +103,8 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
     </div>
     <section className="player-zone" aria-label="目前玩家操作區">
       <div className="hand-heading"><div><p className="eyebrow">{playerName(state.activePlayerId)}</p><h2>你的手牌</h2></div><span>{view.self.hand.length}/{state.rules.hand.maximumSize} 張</span></div>
-      <CardHand cards={view.self.hand} selectedCardId={selectedCardId} playableCardIds={playableCardIds} onCommit={playCard} onSelect={setSelectedCardId} />
+      <CardHand cards={view.self.hand} playableCardIds={playableCardIds} unavailableReasonByCardId={unavailableReasonByCardId} onCommit={playCard} onDragStateChange={setActiveCardDrag} />
       <section className="card-controls" aria-label="卡牌操作">
-      <button disabled={!selectedCard} onClick={playSelectedCard}>打出選取的牌</button>
       {state.turn.phase === 'await-action-move' ? <button onClick={finishAction}>提前結束行動牌</button> : null}
       {state.turn.phase === 'await-effect-choice' && state.turn.pendingEffect?.kind === 'wild-color' ? <div className="color-choice" aria-label="選擇新的牌色">
         {(['red', 'yellow', 'green', 'blue'] as CardColor[]).map((color) => <button className={color} key={color} onClick={() => chooseWildColor(color)}>{cardColorName(color)}</button>)}

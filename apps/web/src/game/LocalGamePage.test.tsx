@@ -13,6 +13,13 @@ describe('LocalGamePage', () => {
     expect(screen.getByTestId('match-sidebar')).toBeTruthy()
   })
 
+  it('plays cards directly without a selected-card confirmation control', async () => {
+    render(<LocalGamePage seed="direct-card-play" />)
+    await waitFor(() => expect(screen.getByText('請打出一張可用手牌，或直接移動一枚棋子。')).toBeTruthy())
+
+    expect(screen.queryByRole('button', { name: '打出選取的牌' })).toBeNull()
+  })
+
   it('automatically draws then submits a legal basic chess move through square clicks', async () => {
     render(<LocalGamePage seed="click-move" />)
     await waitFor(() => expect(screen.getByText('請打出一張可用手牌，或直接移動一枚棋子。')).toBeTruthy())
