@@ -6,6 +6,7 @@ import { OverflowDiscard } from '../components/OverflowDiscard.js'
 import { TurnGuide } from '../components/TurnGuide.js'
 import { MoveHistory } from '../components/MoveHistory.js'
 import { PromotionChooser } from '../components/PromotionChooser.js'
+import { PlayerGraveyard } from '../components/PlayerGraveyard.js'
 import { useLocalGame } from './useLocalGame.js'
 import '../styles/game.css'
 import { useEffect, useMemo, useState } from 'react'
@@ -15,6 +16,7 @@ import { cardColorName, cardName, pieceName, playerName } from '../presentation/
 import type { CardDragVisualState } from '../input/useCardDrag.js'
 import { buildTimeline } from './matchTimeline.js'
 import { promotionChoicesForMove } from './promotion.js'
+import { materialValue } from '../presentation/chessPieces.js'
 
 export interface LocalGamePageProps {
   seed: string
@@ -34,6 +36,11 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
   const displayView = useMemo(() => projectPlayerView(displayState, displayState.activePlayerId), [displayState])
   const reviewingHistory = historicalState !== null
   const perspective = Object.entries(displayState.controllerByArmy).find(([, playerId]) => playerId === displayState.activePlayerId)?.[0] ?? 'white'
+  const nearArmy = perspective as 'white' | 'black'
+  const farArmy = nearArmy === 'white' ? 'black' : 'white'
+  const whiteLost = displayState.board.capturedByArmy.white.reduce((total, piece) => total + materialValue(piece.kind), 0)
+  const blackLost = displayState.board.capturedByArmy.black.reduce((total, piece) => total + materialValue(piece.kind), 0)
+  const materialDelta = { white: Math.max(0, blackLost - whiteLost), black: Math.max(0, whiteLost - blackLost) }
   const cardsSealed = state.players[state.activePlayerId]?.statuses.some((status) => status.kind === 'sealed') ?? false
   const playableCardIds = !reviewingHistory && pendingPromotion === null && state.turn.phase === 'await-action' && !cardsSealed && state.discardFace
     ? view.self.hand.filter((card) => canPlayCard(card, state.discardFace!, state.rules)).map((card) => card.id)
@@ -120,8 +127,12 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
     <div className="game-arena">
       <section className="board-stage" data-testid="board-stage" aria-label="對戰棋盤">
         {reviewingHistory ? <div className="history-mode" role="status"><span>{historySequence === 0 ? '正在查看開局' : `正在查看第 ${historySequence} 個事件`}</span><button onClick={() => setHistorySequence(null)}>回到目前局面</button></div> : null}
-        {pendingPromotion ? <PromotionChooser army={perspective as 'white' | 'black'} from={pendingPromotion.from} to={pendingPromotion.to} options={pendingPromotion.options} onChoose={(piece) => commitMove(pendingPromotion.from, pendingPromotion.to, piece)} onCancel={() => setPendingPromotion(null)} /> : null}
-        <ChessBoard fen={displayView.board.fen} perspective={perspective as 'white' | 'black'} interactionLocked={activeCardDrag !== null || reviewingHistory || pendingPromotion !== null} legalMoves={reviewingHistory ? [] : legalMoves} selectedSquare={reviewingHistory ? null : selectedSquare} legalTargets={reviewingHistory ? [] : legalTargets} onMove={requestMove} onSquareClick={chooseSquare} />
+        {pendingPromotion ? <PromotionChooser army={nearArmy} from={pendingPromotion.from} to={pendingPromotion.to} options={pendingPromotion.options} onChoose={(piece) => commitMove(pendingPromotion.from, pendingPromotion.to, piece)} onCancel={() => setPendingPromotion(null)} /> : null}
+        <div className="board-column">
+          <PlayerGraveyard army={farArmy} pieces={displayState.board.capturedByArmy[farArmy]} materialDelta={materialDelta[farArmy]} eligiblePieceIds={reviewingHistory ? [] : reinforcementOptions.map((option) => option.pieceId)} selectedPieceId={pendingReinforcementPieceId ?? null} onSelect={toggleReinforcementPiece} />
+          <ChessBoard fen={displayView.board.fen} perspective={nearArmy} interactionLocked={activeCardDrag !== null || reviewingHistory || pendingPromotion !== null} legalMoves={reviewingHistory ? [] : legalMoves} selectedSquare={reviewingHistory ? null : selectedSquare} legalTargets={reviewingHistory ? [] : legalTargets} onMove={requestMove} onSquareClick={chooseSquare} />
+          <PlayerGraveyard army={nearArmy} pieces={displayState.board.capturedByArmy[nearArmy]} materialDelta={materialDelta[nearArmy]} eligiblePieceIds={reviewingHistory ? [] : reinforcementOptions.map((option) => option.pieceId)} selectedPieceId={pendingReinforcementPieceId ?? null} onSelect={toggleReinforcementPiece} />
+        </div>
         <CardPlayZone active={activeCardDrag !== null} ready={activeCardDrag?.overDropZone ?? false} />
       </section>
       <aside className="match-sidebar" data-testid="match-sidebar" aria-label="對局資訊">

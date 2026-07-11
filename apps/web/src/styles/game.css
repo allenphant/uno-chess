@@ -17,10 +17,15 @@ button { font: inherit; }
 .turn-guide > span { display: grid; place-items: center; width: 2rem; aspect-ratio: 1; border-radius: 50%; background: #facc15; color: #422006; font-weight: 900; }
 .turn-guide p { margin: 0; font-weight: 800; }
 .board-stage { position: relative; display: grid; place-items: center; min-width: 0; overflow: hidden; padding: clamp(.5rem, 1.3vw, 1rem); border: 1px solid #ffffff12; border-radius: 1.25rem; background: linear-gradient(145deg, #26354a, #151e2e); box-shadow: 0 1.4rem 3.4rem #0007; }
+.board-column { display: grid; gap: .42rem; width: min(100%, 72vh); }
 .card-play-zone { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; pointer-events: auto; border: .2rem dashed #fbbf24; border-radius: inherit; background: #0f172a99; color: #fef3c7; box-shadow: inset 0 0 3rem #020617aa; text-align: center; transition: transform .14s ease, border-color .14s ease, background .14s ease; }
 .card-play-zone strong { padding: .75rem 1rem; border-radius: 999px; background: #020617aa; font-size: clamp(.95rem, 2.4vw, 1.35rem); }
 .card-play-zone.ready { border-style: solid; border-color: #4ade80; background: #14532de6; color: white; box-shadow: 0 0 0 999rem #02061770, 0 0 2.4rem #4ade8099; transform: scale(1.035); }
-.board { width: min(100%, 72vh); aspect-ratio: 1; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); grid-template-rows: repeat(8, minmax(0, 1fr)); overflow: hidden; border: clamp(.38rem, 1vw, .72rem) solid #3f2b22; border-radius: .35rem; outline: 1px solid #d6ad72aa; box-shadow: inset 0 0 0 1px #0008, 0 .85rem 2rem #0008; touch-action: none; }
+.board { width: 100%; aspect-ratio: 1; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); grid-template-rows: repeat(8, minmax(0, 1fr)); overflow: hidden; border: clamp(.38rem, 1vw, .72rem) solid #3f2b22; border-radius: .35rem; outline: 1px solid #d6ad72aa; box-shadow: inset 0 0 0 1px #0008, 0 .85rem 2rem #0008; touch-action: none; }
+.player-graveyard { min-height: 2.2rem; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .55rem; padding: .35rem .55rem; border: 1px solid #ffffff12; border-radius: .65rem; background: #0f172abf; }
+.graveyard-label { display: grid; min-width: 4.2rem; }.graveyard-label strong { font-size: .72rem; }.graveyard-label span { color: #94a3b8; font-size: .58rem; }
+.graveyard-pieces { display: flex; align-items: center; min-width: 0; }.captured-piece, .graveyard-pieces button span { display: inline-grid; place-items: center; width: 1.35rem; color: #e2e8f0; font-size: 1.35rem; line-height: 1; filter: drop-shadow(0 .08rem .08rem #0008); }.player-graveyard.white .captured-piece, .player-graveyard.white .graveyard-pieces button span { color: #fff8e7; }.player-graveyard.black .captured-piece, .player-graveyard.black .graveyard-pieces button span { color: #171717; text-shadow: 0 1px 1px #fff8; }
+.graveyard-pieces button { border: 1px solid #4ade8077; border-radius: .4rem; padding: .1rem; background: #14532d88; cursor: pointer; }.graveyard-pieces button[aria-pressed="true"] { border-color: #fbbf24; background: #713f12; box-shadow: 0 0 0 .12rem #fbbf2466; }.material-delta { color: #fbbf24; font-size: .78rem; }
 .square { position: relative; isolation: isolate; min-width: 0; min-height: 0; overflow: hidden; border: 0; padding: 0; display: grid; place-items: center; cursor: pointer; font-size: clamp(1.75rem, 7.3vmin, 4.8rem); line-height: 1; transition: filter .13s ease, transform .13s ease, box-shadow .13s ease; }
 .square.light { background: #eed9b7; color: #221b18; }
 .square.dark { background: #9a654a; color: #fff8e7; }
@@ -91,7 +96,7 @@ button { font: inherit; }
   .game-arena { grid-template-columns: 1fr; }
   .match-sidebar { grid-row: 1; grid-template-columns: 1fr 1fr; }
   .turn-panel { grid-row: span 2; }
-  .board { width: min(100%, 72dvh); }
+  .board-column { width: min(100%, 72dvh); }
 }
 @media (max-width: 520px) {
   .game-masthead { margin-inline: .25rem; }
@@ -100,7 +105,7 @@ button { font: inherit; }
   .board-stage, .player-zone { padding: .45rem; border-radius: .8rem; }
   .match-sidebar { grid-template-columns: 1fr; }
   .turn-panel { grid-row: auto; }
-  .board { width: 100%; }
+  .board-column { width: 100%; }
   .card { flex-basis: 8.4rem; width: 8.4rem; min-width: 8.4rem; }
   .card-effect { font-size: .64rem; }
 }
