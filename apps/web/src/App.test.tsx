@@ -6,6 +6,13 @@ import { afterEach, describe, expect, it } from 'vitest'
 afterEach(cleanup)
 
 describe('App', () => {
+  it('creates a fresh seed for each new local game', async () => {
+    const appModule = await import('./App.js') as { createLocalGameSeed?: () => string }
+    if (!appModule.createLocalGameSeed) throw new Error('LOCAL_GAME_SEED_FACTORY_MISSING')
+
+    expect(appModule.createLocalGameSeed()).not.toBe(appModule.createLocalGameSeed())
+  })
+
   it('renders the UNO Chess application heading', async () => {
     const appModule = await import('./App.js') as { App?: ComponentType }
 
