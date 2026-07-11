@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import userEvent from '@testing-library/user-event'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ChessBoard } from './ChessBoard.js'
 
 afterEach(cleanup)
@@ -25,5 +26,14 @@ describe('ChessBoard presentation', () => {
 
     expect(screen.getByTestId('coordinate-file-h')).toBeTruthy()
     expect(screen.getByTestId('coordinate-rank-8')).toBeTruthy()
+  })
+
+  it('ignores square clicks while a card drag locks the board', async () => {
+    const onSquareClick = vi.fn()
+    render(<ChessBoard fen={initialFen} perspective="white" interactionLocked selectedSquare={null} legalTargets={[]} onSquareClick={onSquareClick} />)
+
+    await userEvent.click(screen.getByRole('gridcell', { name: 'e2' }))
+
+    expect(onSquareClick).not.toHaveBeenCalled()
   })
 })
