@@ -1,6 +1,7 @@
 import { CardHand } from '../components/CardHand.js'
 import { ChessBoard } from '../components/ChessBoard.js'
 import { TurnPanel } from '../components/TurnPanel.js'
+import { OverflowDiscard } from '../components/OverflowDiscard.js'
 import { useLocalGame } from './useLocalGame.js'
 import '../styles/game.css'
 import { useEffect, useState } from 'react'
@@ -38,19 +39,22 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
     setReinforcementSquares([])
   }, [state.activePlayerId, state.turn.phase])
 
-  const playSelectedCard = () => {
-    if (!selectedCard) return
-    const definition = state.rules.cards.find((card) => card.kind === selectedCard.kind)
+  const playCard = (cardId: string) => {
+    const card = view.self.hand.find((candidate) => candidate.id === cardId)
+    if (!card) return
+    const definition = state.rules.cards.find((candidate) => candidate.kind === card.kind)
     if (!definition) return
     dispatch({
       type: definition.category === 'action' ? 'play-action-card' : 'play-function-card',
       playerId: state.activePlayerId,
       intentId: nextIntentId('play-card'),
-      cardId: selectedCard.id,
+      cardId: card.id,
     })
   }
+  const playSelectedCard = () => selectedCard && playCard(selectedCard.id)
 
   const finishAction = () => dispatch({ type: 'finish-action-card', playerId: state.activePlayerId, intentId: nextIntentId('finish-action') })
+  const discardOverflow = (cardId: string) => dispatch({ type: 'discard-overflow', playerId: state.activePlayerId, intentId: nextIntentId('overflow'), cardId })
   const chooseWildColor = (color: CardColor) => dispatch({ type: 'choose-wild-color', playerId: state.activePlayerId, intentId: nextIntentId('wild-color'), color })
   const toggleReinforcementPiece = (pieceId: string) => {
     if (reinforcementSquares.length > 0) return
@@ -82,8 +86,9 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
   return <main className="game-shell">
     <header><h1>UNO Chess</h1></header>
     <TurnPanel state={state} draw={draw} drawDisabled={state.turn.phase !== 'turn-start'} error={error} />
+    {state.turn.phase === 'await-overflow-discard' ? <OverflowDiscard cards={view.self.hand} onDiscard={discardOverflow} /> : null}
     <ChessBoard fen={view.board.fen} perspective={perspective as 'white' | 'black'} cardReady={selectedCardId !== null} selectedSquare={selectedSquare} legalTargets={legalTargets} onSquareClick={chooseSquare} />
-    <CardHand cards={view.self.hand} selectedCardId={selectedCardId} playableCardIds={playableCardIds} onSelect={setSelectedCardId} />
+    <CardHand cards={view.self.hand} selectedCardId={selectedCardId} playableCardIds={playableCardIds} onCommit={playCard} onSelect={setSelectedCardId} />
     <section className="card-controls" aria-label="Card controls">
       <button disabled={!selectedCard} onClick={playSelectedCard}>Play selected card</button>
       {state.turn.phase === 'await-action-move' ? <button onClick={finishAction}>Finish card moves</button> : null}

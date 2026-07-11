@@ -1,4 +1,5 @@
 import type { ArmyColor, Square } from '@uno-chess/protocol'
+import { usePieceDrag } from '../input/usePieceDrag.js'
 
 const glyphs: Record<string, string> = {
   P: '♙', N: '♘', B: '♗', R: '♖', Q: '♕', K: '♔',
@@ -20,16 +21,21 @@ export function ChessBoard({ fen, perspective, cardReady, selectedSquare, legalT
   const files = perspective === 'white' ? ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] : ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
 
   return (
-    <div className="board" data-testid="board" data-card-ready={String(cardReady)} role="grid" aria-label="Chess board">
+    <div className="board" data-testid="board" data-card-drop-zone="true" data-card-ready={String(cardReady)} role="grid" aria-label="Chess board">
       {ranks.flatMap((rank) => files.map((file) => {
         const square = `${file}${rank}` as Square
         const dark = (files.indexOf(file) + ranks.indexOf(rank)) % 2 === 1
         const selected = selectedSquare === square
         const target = legalTargets.includes(square)
-        return <button className={`square ${dark ? 'dark' : 'light'}${selected ? ' selected' : ''}${target ? ' legal-target' : ''}`} key={square} role="gridcell" aria-label={square} onClick={() => onSquareClick(square)}>{glyphs[pieces[square] ?? ''] ?? ''}</button>
+        return <BoardSquare dark={dark} glyph={glyphs[pieces[square] ?? ''] ?? ''} key={square} legalTargets={legalTargets} selected={selected} square={square} target={target} onSquareClick={onSquareClick} />
       }))}
     </div>
   )
+}
+
+function BoardSquare({ dark, glyph, legalTargets, selected, square, target, onSquareClick }: { dark: boolean; glyph: string; legalTargets: Square[]; selected: boolean; square: Square; target: boolean; onSquareClick: (square: Square) => void }) {
+  const drag = usePieceDrag({ enabled: selected, from: square, legalTargets, onCommit: ({ from, to }) => { onSquareClick(from); onSquareClick(to) } })
+  return <button className={`square ${dark ? 'dark' : 'light'}${selected ? ' selected' : ''}${target ? ' legal-target' : ''}${drag.dragging ? ' dragging' : ''}`} data-square={square} role="gridcell" aria-label={square} onClick={() => onSquareClick(square)} onPointerCancel={drag.onPointerCancel} onPointerDown={drag.onPointerDown} onPointerUp={drag.onPointerUp}>{glyph}</button>
 }
 
 function piecesFromFen(fen: string): Partial<Record<Square, string>> {
