@@ -5,14 +5,16 @@ import { TurnPanel } from '../components/TurnPanel.js'
 import { OverflowDiscard } from '../components/OverflowDiscard.js'
 import { TurnGuide } from '../components/TurnGuide.js'
 import { MoveHistory } from '../components/MoveHistory.js'
+import { PromotionChooser } from '../components/PromotionChooser.js'
 import { useLocalGame } from './useLocalGame.js'
 import '../styles/game.css'
 import { useEffect, useMemo, useState } from 'react'
 import { canPlayCard, getLegalActionMoves, getLegalBasicMoves, getLegalReinforcementOptions, projectPlayerView } from '@uno-chess/rules'
-import type { CardColor, Square } from '@uno-chess/protocol'
+import type { CardColor, PromotionPiece, Square } from '@uno-chess/protocol'
 import { cardColorName, cardName, pieceName, playerName } from '../presentation/uiText.js'
 import type { CardDragVisualState } from '../input/useCardDrag.js'
 import { buildTimeline } from './matchTimeline.js'
+import { promotionChoicesForMove } from './promotion.js'
 
 export interface LocalGamePageProps {
   seed: string
@@ -25,6 +27,7 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
   const [reinforcementPieceIds, setReinforcementPieceIds] = useState<string[]>([])
   const [reinforcementSquares, setReinforcementSquares] = useState<Square[]>([])
+  const [pendingPromotion, setPendingPromotion] = useState<{ from: Square; to: Square; options: PromotionPiece[] } | null>(null)
   const timeline = useMemo(() => buildTimeline(events), [events])
   const historicalState = historySequence === null ? null : checkpoints.find((checkpoint) => checkpoint.sequence === historySequence)?.state ?? checkpoints[0]?.state ?? null
   const displayState = historicalState ?? state
@@ -32,7 +35,7 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
   const reviewingHistory = historicalState !== null
   const perspective = Object.entries(displayState.controllerByArmy).find(([, playerId]) => playerId === displayState.activePlayerId)?.[0] ?? 'white'
   const cardsSealed = state.players[state.activePlayerId]?.statuses.some((status) => status.kind === 'sealed') ?? false
-  const playableCardIds = !reviewingHistory && state.turn.phase === 'await-action' && !cardsSealed && state.discardFace
+  const playableCardIds = !reviewingHistory && pendingPromotion === null && state.turn.phase === 'await-action' && !cardsSealed && state.discardFace
     ? view.self.hand.filter((card) => canPlayCard(card, state.discardFace!, state.rules)).map((card) => card.id)
     : []
   const unavailableReasonByCardId: Partial<Record<string, string>> = Object.fromEntries(view.self.hand
@@ -51,6 +54,7 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
     setSelectedSquare(null)
     setReinforcementPieceIds([])
     setReinforcementSquares([])
+    setPendingPromotion(null)
   }, [state.activePlayerId, state.turn.phase])
 
   const playCard = (cardId: string) => {
@@ -79,9 +83,20 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
     capturedPieceIds: reinforcementPieceIds, squares: reinforcementSquares,
   })
 
-  const movePiece = (from: Square, to: Square) => {
-    dispatch({ type: state.turn.phase === 'await-action-move' ? 'action-move' : 'basic-move', playerId: state.activePlayerId, intentId: nextIntentId('chess-move'), from, to })
+  const commitMove = (from: Square, to: Square, promotion?: PromotionPiece) => {
+    const shared = { playerId: state.activePlayerId, intentId: nextIntentId('chess-move'), from, to, ...(promotion ? { promotion } : {}) }
+    dispatch(state.turn.phase === 'await-action-move' ? { type: 'action-move', ...shared } : { type: 'basic-move', ...shared })
     setSelectedSquare(null)
+    setPendingPromotion(null)
+  }
+
+  const requestMove = (from: Square, to: Square) => {
+    const options = promotionChoicesForMove(legalMoves, from, to)
+    if (options.length > 0) {
+      setPendingPromotion({ from, to, options })
+      return
+    }
+    commitMove(from, to)
   }
 
   const chooseSquare = (square: Square) => {
@@ -92,7 +107,7 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
     if (selectedSquare) {
       const move = legalMoves.find((candidate) => candidate.from === selectedSquare && candidate.to === square)
       if (move) {
-        movePiece(move.from, move.to)
+        requestMove(move.from, move.to)
         return
       }
     }
@@ -105,7 +120,8 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
     <div className="game-arena">
       <section className="board-stage" data-testid="board-stage" aria-label="對戰棋盤">
         {reviewingHistory ? <div className="history-mode" role="status"><span>{historySequence === 0 ? '正在查看開局' : `正在查看第 ${historySequence} 個事件`}</span><button onClick={() => setHistorySequence(null)}>回到目前局面</button></div> : null}
-        <ChessBoard fen={displayView.board.fen} perspective={perspective as 'white' | 'black'} interactionLocked={activeCardDrag !== null || reviewingHistory} legalMoves={reviewingHistory ? [] : legalMoves} selectedSquare={reviewingHistory ? null : selectedSquare} legalTargets={reviewingHistory ? [] : legalTargets} onMove={movePiece} onSquareClick={chooseSquare} />
+        {pendingPromotion ? <PromotionChooser army={perspective as 'white' | 'black'} from={pendingPromotion.from} to={pendingPromotion.to} options={pendingPromotion.options} onChoose={(piece) => commitMove(pendingPromotion.from, pendingPromotion.to, piece)} onCancel={() => setPendingPromotion(null)} /> : null}
+        <ChessBoard fen={displayView.board.fen} perspective={perspective as 'white' | 'black'} interactionLocked={activeCardDrag !== null || reviewingHistory || pendingPromotion !== null} legalMoves={reviewingHistory ? [] : legalMoves} selectedSquare={reviewingHistory ? null : selectedSquare} legalTargets={reviewingHistory ? [] : legalTargets} onMove={requestMove} onSquareClick={chooseSquare} />
         <CardPlayZone active={activeCardDrag !== null} ready={activeCardDrag?.overDropZone ?? false} />
       </section>
       <aside className="match-sidebar" data-testid="match-sidebar" aria-label="對局資訊">

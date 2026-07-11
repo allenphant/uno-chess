@@ -51,6 +51,8 @@ button { font: inherit; }
 .discard-summary strong { text-transform: capitalize; }
 .history-mode { position: absolute; z-index: 12; top: 1rem; left: 50%; display: flex; align-items: center; gap: .65rem; transform: translateX(-50%); padding: .5rem .7rem; border: 1px solid #93c5fd66; border-radius: .75rem; background: #172554ed; color: #dbeafe; box-shadow: 0 .5rem 1.1rem #0006; font-size: .78rem; font-weight: 800; white-space: nowrap; }
 .history-mode button { border: 0; border-radius: .55rem; padding: .4rem .55rem; background: #dbeafe; color: #172554; font-weight: 850; cursor: pointer; }
+.promotion-chooser { position: absolute; z-index: 16; top: 50%; left: 50%; width: min(90%, 24rem); transform: translate(-50%, -50%); padding: 1rem; border: 1px solid #fbbf2477; border-radius: 1rem; background: #111827f5; box-shadow: 0 1.2rem 3rem #000b; text-align: center; }
+.promotion-chooser p { margin: 0 0 .8rem; font-weight: 850; }.promotion-chooser > div { display: grid; grid-template-columns: repeat(4, 1fr); gap: .45rem; }.promotion-chooser button { border: 1px solid #ffffff1f; border-radius: .65rem; padding: .5rem; background: #334155; color: #f8fafc; cursor: pointer; font-weight: 750; }.promotion-chooser button span { display: block; font-size: 2rem; }.promotion-chooser .promotion-cancel { margin-top: .7rem; background: transparent; color: #cbd5e1; }
 .move-history { min-height: 13rem; overflow: hidden; }
 .history-heading { display: flex; justify-content: space-between; align-items: end; gap: .75rem; padding: .85rem .9rem .65rem; border-bottom: 1px solid #ffffff12; }
 .history-heading > div { display: grid; gap: .08rem; }.history-heading span { color: #94a3b8; font-size: .68rem; }.history-heading strong { font-size: .92rem; }
