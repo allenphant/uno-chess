@@ -129,6 +129,7 @@ function playActionCard(state: GameState, playerId: PlayerId, cardId: CardId, ev
   state.discardFace = { kind: card.kind, color: card.color }
   state.turn.playedCardId = card.id
   state.turn.actionBudget = actionProgram.budget
+  state.turn.actionMinimum = actionProgram.minimumMoves
   state.turn.actionsUsed = 0
   state.turn.phase = 'await-action-move'
   emit(state, events, 'card-played', { playerId, cardId: card.id, kind: card.kind, color: card.color })
@@ -156,7 +157,7 @@ function actionMove(
 }
 
 function finishActionCard(state: GameState, playerId: PlayerId, events: GameEvent[]): void {
-  if (state.turn.phase !== 'await-action-move' || state.turn.actionsUsed < 1) {
+  if (state.turn.phase !== 'await-action-move' || state.turn.actionsUsed < state.turn.actionMinimum) {
     throw new Error('ACTION_CARD_CANNOT_FINISH_YET')
   }
   endTurn(state, playerId, events)
@@ -232,6 +233,12 @@ function executeFunctionProgram(
     const operation = program[operationIndex]
     if (!operation) throw new Error('FUNCTION_PROGRAM_OPERATION_MISSING')
     switch (operation.type) {
+      case 'start-action':
+        state.turn.actionBudget = operation.budget
+        state.turn.actionMinimum = operation.minimumMoves
+        state.turn.actionsUsed = 0
+        state.turn.phase = 'await-action-move'
+        return
       case 'set-status':
         getPlayer(state, opponentId(state, playerId)).statuses.push({ kind: operation.status, remainingTurns: operation.turns })
         break
@@ -250,7 +257,7 @@ function executeFunctionProgram(
         return
       case 'request-reinforcement':
         if (!hasLegalReinforcement(state, playerId)) throw new Error('REINFORCEMENT_HAS_NO_LEGAL_TARGET')
-        state.turn.pendingEffect = { kind: 'reinforce', cardId, nextOperationIndex: operationIndex + 1 }
+        state.turn.pendingEffect = { kind: 'reinforce', cardId, nextOperationIndex: operationIndex + 1, maximumPieces: operation.maximumPieces }
         state.turn.phase = 'await-effect-choice'
         return
       case 'draw-cards':
@@ -293,9 +300,10 @@ function chooseReinforcement(
   if (state.turn.phase !== 'await-effect-choice' || state.turn.pendingEffect?.kind !== 'reinforce') {
     throw new Error('REINFORCEMENT_NOT_AVAILABLE')
   }
+  const pending = state.turn.pendingEffect
   if (capturedPieceIds.length === 0) throw new Error('REINFORCEMENT_REQUIRES_PIECE')
   if (capturedPieceIds.length !== squares.length) throw new Error('REINFORCEMENT_SELECTION_MISMATCH')
-  if (capturedPieceIds.length > state.rules.reinforce.maximumPieces) throw new Error('REINFORCEMENT_LIMIT_EXCEEDED')
+  if (capturedPieceIds.length > pending.maximumPieces) throw new Error('REINFORCEMENT_LIMIT_EXCEEDED')
   if (new Set(capturedPieceIds).size !== capturedPieceIds.length) throw new Error('REINFORCEMENT_DUPLICATE_PIECE')
   if (new Set(squares).size !== squares.length) throw new Error('REINFORCEMENT_DUPLICATE_SQUARE')
 
@@ -333,7 +341,6 @@ function chooseReinforcement(
     emit(state, events, 'piece-reinforced', { playerId, pieceId: piece.id, piece: piece.kind, at: square })
   }
   state.board.capturedByArmy[army] = available.filter((piece) => !capturedPieceIds.includes(piece.id))
-  const pending = state.turn.pendingEffect
   const card = state.discardPile.at(-1)
   if (!card || card.id !== pending.cardId) throw new Error('REINFORCEMENT_CARD_NOT_ON_DISCARD')
   state.turn.pendingEffect = null
@@ -555,6 +562,7 @@ function endTurn(state: GameState, playerId: PlayerId, events: GameEvent[]): voi
     drewCard: false,
     playedCardId: null,
     actionBudget: 0,
+    actionMinimum: 0,
     actionsUsed: 0,
     pendingEffect: null,
   }

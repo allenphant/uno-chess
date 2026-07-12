@@ -2,7 +2,7 @@ import type { CardColor, CardInstance, PieceRecord } from '@uno-chess/protocol'
 import { describe, expect, it } from 'vitest'
 import { applyIntent, buildTestState } from '../index.js'
 
-function functionCard(kind: 'reinforce' | 'seal' | 'reverse' | 'betray', color: CardColor | null): CardInstance {
+function functionCard(kind: 'reinforce-1' | 'reinforce' | 'seal' | 'reverse' | 'betray', color: CardColor | null): CardInstance {
   return { id: `${kind}:${color ?? 'wild'}:test`, kind, color }
 }
 
@@ -11,7 +11,7 @@ function actionCard(color: CardColor): CardInstance {
 }
 
 describe('function cards', () => {
-  it('Seal blocks card use for the opponent turn but still permits draw and a basic move', () => {
+  it('Seal blocks the opponent next turn and lets its player move once or finish immediately', () => {
     const state = buildTestState({ phase: 'await-action' })
     const color = state.discardFace?.color
     if (!color) throw new Error('TEST_REQUIRES_DISCARD_FACE')
@@ -24,9 +24,19 @@ describe('function cards', () => {
     })
 
     expect(sealed.state.players.p2?.statuses).toContainEqual({ kind: 'sealed', remainingTurns: 1 })
-    expect(sealed.state.activePlayerId).toBe('p2')
+    expect(sealed.state).toMatchObject({ activePlayerId: 'p1', turn: { phase: 'await-action-move', actionBudget: 1, actionMinimum: 0 } })
 
-    const drawn = applyIntent(sealed.state, { type: 'draw-for-turn', playerId: 'p2', intentId: 'seal-draw' })
+    const movedAfterSeal = applyIntent(sealed.state, {
+      type: 'action-move', playerId: 'p1', intentId: 'seal-move', from: 'e2', to: 'e4',
+    })
+    expect(movedAfterSeal.state.activePlayerId).toBe('p2')
+
+    const skippedAfterSeal = applyIntent(sealed.state, {
+      type: 'finish-action-card', playerId: 'p1', intentId: 'seal-skip',
+    })
+    expect(skippedAfterSeal.state.activePlayerId).toBe('p2')
+
+    const drawn = applyIntent(movedAfterSeal.state, { type: 'draw-for-turn', playerId: 'p2', intentId: 'seal-draw' })
     expect(() => applyIntent(drawn.state, {
       type: 'play-action-card', playerId: 'p2', intentId: 'sealed-card', cardId: `action-2:${color}:test`,
     })).toThrow('CARDS_SEALED')
@@ -99,6 +109,27 @@ describe('function cards', () => {
     expect(resolved.state.board.capturedByArmy.white).toEqual([])
     expect(resolved.events.map((event) => event.type)).toContain('piece-reinforced')
     expect(resolved.state.activePlayerId).toBe('p2')
+  })
+
+  it('Reinforce +1 rejects a second piece while Reinforce +2 keeps the two-piece limit', () => {
+    const state = buildTestState({ phase: 'await-action' })
+    const color = state.discardFace?.color
+    if (!color) throw new Error('TEST_REQUIRES_DISCARD_FACE')
+    const knight: PieceRecord = { id: 'white-knight:b1', army: 'white', kind: 'n', originalSquare: 'b1' }
+    const bishop: PieceRecord = { id: 'white-bishop:c1', army: 'white', kind: 'b', originalSquare: 'c1' }
+    const reinforceOne = functionCard('reinforce-1', color)
+    state.board.fen = '4k3/8/8/8/8/8/8/4K3 w - - 0 1'
+    state.board.capturedByArmy.white = [knight, bishop]
+    state.players.p1!.hand = [reinforceOne]
+
+    const played = applyIntent(state, {
+      type: 'play-function-card', playerId: 'p1', intentId: 'reinforce-one-play', cardId: reinforceOne.id,
+    })
+    expect(played.state.turn.pendingEffect).toMatchObject({ kind: 'reinforce', maximumPieces: 1 })
+    expect(() => applyIntent(played.state, {
+      type: 'choose-reinforcement', playerId: 'p1', intentId: 'reinforce-one-place',
+      capturedPieceIds: [knight.id, bishop.id], squares: ['c3', 'd3'],
+    })).toThrow('REINFORCEMENT_LIMIT_EXCEEDED')
   })
 
   it('executes a data-defined draw-cards operation without a card-kind reducer branch', () => {

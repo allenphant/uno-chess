@@ -5,11 +5,11 @@ const CardColorSchema = z.enum(['red', 'yellow', 'green', 'blue'])
 const PieceKindSchema = z.enum(['p', 'n', 'b', 'r', 'q'])
 
 const EffectOperationSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('start-action'), budget: z.union([z.literal(2), z.literal(3)]) }).strict(),
+  z.object({ type: z.literal('start-action'), budget: z.union([z.literal(1), z.literal(2), z.literal(3)]), minimumMoves: z.union([z.literal(0), z.literal(1)]) }).strict(),
   z.object({ type: z.literal('set-status'), target: z.literal('opponent'), status: z.literal('sealed'), turns: z.literal(1) }).strict(),
   z.object({ type: z.literal('swap-hands') }).strict(),
   z.object({ type: z.literal('swap-army-controllers') }).strict(),
-  z.object({ type: z.literal('request-reinforcement') }).strict(),
+  z.object({ type: z.literal('request-reinforcement'), maximumPieces: z.union([z.literal(1), z.literal(2)]) }).strict(),
   z.object({ type: z.literal('request-wild-color') }).strict(),
   z.object({ type: z.literal('draw-cards'), target: z.enum(['self', 'opponent']), count: z.number().int().positive() }).strict(),
   z.object({ type: z.literal('end-turn') }).strict(),
@@ -89,8 +89,8 @@ export const RuleSnapshotSchema = RuleSnapshotBaseSchema.superRefine((rules, con
     if (card.category === 'action' && (card.program.length !== 1 || actionOperations.length !== 1)) {
       issue('ACTION_PROGRAM_INVALID', ['cards', index, 'program'])
     }
-    if (card.category === 'function' && card.program.at(-1)?.type !== 'end-turn') {
-      issue('FUNCTION_PROGRAM_MUST_END_TURN', ['cards', index, 'program'])
+    if (card.category === 'function' && !['end-turn', 'start-action'].includes(card.program.at(-1)?.type ?? '')) {
+      issue('FUNCTION_PROGRAM_MUST_RESOLVE_TURN', ['cards', index, 'program'])
     }
     if (new Set(card.colors).size !== card.colors.length) {
       issue('CARD_COLOR_DUPLICATE', ['cards', index, 'colors'])

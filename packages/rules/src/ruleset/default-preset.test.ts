@@ -9,17 +9,18 @@ type RuleSnapshotView = {
 }
 
 describe('default rules v1', () => {
-  it('contains the approved 34-card distribution and no action-1 card', () => {
+  it('contains both reinforcement strengths and no action-1 card', () => {
     const api = rules as Record<string, unknown>
     expect(api.defaultRules).toBeDefined()
     expect(api.buildDeck).toBeTypeOf('function')
     if (!api.defaultRules || typeof api.buildDeck !== 'function') return
 
     const deck = (api.buildDeck as (snapshot: unknown) => Card[])(api.defaultRules)
-    expect(deck).toHaveLength(34)
+    expect(deck).toHaveLength(38)
     expect(deck.filter((card) => card.kind === 'action-2')).toHaveLength(12)
     expect(deck.filter((card) => card.kind === 'action-3')).toHaveLength(8)
     expect(deck.filter((card) => card.kind === 'reinforce')).toHaveLength(4)
+    expect(deck.filter((card) => card.kind === 'reinforce-1')).toHaveLength(4)
     expect(deck.filter((card) => card.kind === 'seal')).toHaveLength(4)
     expect(deck.filter((card) => card.kind === 'reverse')).toHaveLength(4)
     expect(deck.filter((card) => card.kind === 'betray')).toHaveLength(2)

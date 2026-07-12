@@ -58,6 +58,7 @@ export function createGame(input: CreateGameInput): GameState {
       drewCard: false,
       playedCardId: null,
       actionBudget: 0,
+      actionMinimum: 0,
       actionsUsed: 0,
       pendingEffect: null,
     },

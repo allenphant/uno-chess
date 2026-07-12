@@ -7,12 +7,14 @@ import { TurnGuide } from '../components/TurnGuide.js'
 import { MoveHistory } from '../components/MoveHistory.js'
 import { PromotionChooser } from '../components/PromotionChooser.js'
 import { PlayerGraveyard } from '../components/PlayerGraveyard.js'
+import { ReinforcementTray, type ReinforcementAssignment } from '../components/ReinforcementTray.js'
+import { ActionFeedback, latestActionFeedback } from '../components/ActionFeedback.js'
 import { useLocalGame } from './useLocalGame.js'
 import '../styles/game.css'
 import { useEffect, useMemo, useState } from 'react'
 import { canPlayCard, getLegalActionMoves, getLegalBasicMoves, getLegalReinforcementOptions, projectPlayerView } from '@uno-chess/rules'
-import type { CardColor, PromotionPiece, Square } from '@uno-chess/protocol'
-import { cardColorName, cardName, pieceName, playerName } from '../presentation/uiText.js'
+import type { CardColor, ChessPieceKind, PromotionPiece, Square } from '@uno-chess/protocol'
+import { cardColorName, cardName, playerName } from '../presentation/uiText.js'
 import type { CardDragVisualState } from '../input/useCardDrag.js'
 import { buildTimeline } from './matchTimeline.js'
 import { promotionChoicesForMove } from './promotion.js'
@@ -27,10 +29,11 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
   const [historySequence, setHistorySequence] = useState<number | null>(null)
   const [activeCardDrag, setActiveCardDrag] = useState<CardDragVisualState | null>(null)
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
-  const [reinforcementPieceIds, setReinforcementPieceIds] = useState<string[]>([])
-  const [reinforcementSquares, setReinforcementSquares] = useState<Square[]>([])
+  const [selectedReinforcementPieceId, setSelectedReinforcementPieceId] = useState<string | null>(null)
+  const [reinforcementAssignments, setReinforcementAssignments] = useState<ReinforcementAssignment[]>([])
   const [pendingPromotion, setPendingPromotion] = useState<{ from: Square; to: Square; options: PromotionPiece[] } | null>(null)
   const timeline = useMemo(() => buildTimeline(events), [events])
+  const moveFeedback = useMemo(() => latestActionFeedback(events), [events])
   const historicalState = historySequence === null ? null : checkpoints.find((checkpoint) => checkpoint.sequence === historySequence)?.state ?? checkpoints[0]?.state ?? null
   const displayState = historicalState ?? state
   const displayView = useMemo(() => projectPlayerView(displayState, displayState.activePlayerId), [displayState])
@@ -50,17 +53,23 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
     .map((card) => [card.id, cardsSealed ? '本回合手牌已被封印。' : '這張牌不符合目前顏色或功能。']))
   const legalMoves = state.turn.phase === 'await-action' ? getLegalBasicMoves(state) : getLegalActionMoves(state)
   const reinforcementOptions = getLegalReinforcementOptions(state)
-  const pendingReinforcementPieceId = reinforcementPieceIds[reinforcementSquares.length]
-  const pendingReinforcement = reinforcementOptions.find((option) => option.pieceId === pendingReinforcementPieceId)
+  const reinforcementMaximum = state.turn.pendingEffect?.kind === 'reinforce' ? state.turn.pendingEffect.maximumPieces : state.rules.reinforce.maximumPieces
+  const pendingReinforcement = reinforcementOptions.find((option) => option.pieceId === selectedReinforcementPieceId)
+  const assignedReinforcementIds = reinforcementAssignments.map((assignment) => assignment.pieceId)
+  const assignedReinforcementSquares = reinforcementAssignments.map((assignment) => assignment.square)
   const legalTargets = state.turn.phase === 'await-effect-choice' && state.turn.pendingEffect?.kind === 'reinforce'
-    ? pendingReinforcement?.squares ?? []
+    ? pendingReinforcement?.squares.filter((square) => !assignedReinforcementSquares.includes(square)) ?? []
     : selectedSquare ? legalMoves.filter((move) => move.from === selectedSquare).map((move) => move.to) : []
+  const reinforcementGhosts = [
+    ...reinforcementAssignments.map((assignment) => ({ ...assignment, army: nearArmy, status: 'assigned' as const })),
+    ...(pendingReinforcement ? legalTargets.map((square) => ({ square, army: nearArmy, kind: pendingReinforcement.kind as ChessPieceKind, status: 'target' as const })) : []),
+  ]
 
   useEffect(() => {
     setActiveCardDrag(null)
     setSelectedSquare(null)
-    setReinforcementPieceIds([])
-    setReinforcementSquares([])
+    setSelectedReinforcementPieceId(null)
+    setReinforcementAssignments([])
     setPendingPromotion(null)
   }, [state.activePlayerId, state.turn.phase])
 
@@ -80,14 +89,13 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
   const discardOverflow = (cardId: string) => dispatch({ type: 'discard-overflow', playerId: state.activePlayerId, intentId: nextIntentId('overflow'), cardId })
   const chooseWildColor = (color: CardColor) => dispatch({ type: 'choose-wild-color', playerId: state.activePlayerId, intentId: nextIntentId('wild-color'), color })
   const toggleReinforcementPiece = (pieceId: string) => {
-    if (reinforcementSquares.length > 0) return
-    setReinforcementPieceIds((selected) => selected.includes(pieceId)
-      ? selected.filter((id) => id !== pieceId)
-      : selected.length < state.rules.reinforce.maximumPieces ? [...selected, pieceId] : selected)
+    if (assignedReinforcementIds.includes(pieceId) || reinforcementAssignments.length >= reinforcementMaximum) return
+    setSelectedReinforcementPieceId((selected) => selected === pieceId ? null : pieceId)
   }
   const confirmReinforcement = () => dispatch({
     type: 'choose-reinforcement', playerId: state.activePlayerId, intentId: nextIntentId('reinforce'),
-    capturedPieceIds: reinforcementPieceIds, squares: reinforcementSquares,
+    capturedPieceIds: reinforcementAssignments.map((assignment) => assignment.pieceId),
+    squares: reinforcementAssignments.map((assignment) => assignment.square),
   })
 
   const commitMove = (from: Square, to: Square, promotion?: PromotionPiece) => {
@@ -108,7 +116,10 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
 
   const chooseSquare = (square: Square) => {
     if (state.turn.phase === 'await-effect-choice' && state.turn.pendingEffect?.kind === 'reinforce') {
-      if (pendingReinforcement?.squares.includes(square)) setReinforcementSquares((squares) => [...squares, square])
+      if (pendingReinforcement && legalTargets.includes(square)) {
+        setReinforcementAssignments((assignments) => [...assignments, { pieceId: pendingReinforcement.pieceId, kind: pendingReinforcement.kind as ChessPieceKind, square }])
+        setSelectedReinforcementPieceId(null)
+      }
       return
     }
     if (selectedSquare) {
@@ -128,10 +139,11 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
       <section className="board-stage" data-testid="board-stage" aria-label="對戰棋盤">
         {reviewingHistory ? <div className="history-mode" role="status"><span>{historySequence === 0 ? '正在查看開局' : `正在查看第 ${historySequence} 個事件`}</span><button onClick={() => setHistorySequence(null)}>回到目前局面</button></div> : null}
         {pendingPromotion ? <PromotionChooser army={nearArmy} from={pendingPromotion.from} to={pendingPromotion.to} options={pendingPromotion.options} onChoose={(piece) => commitMove(pendingPromotion.from, pendingPromotion.to, piece)} onCancel={() => setPendingPromotion(null)} /> : null}
+        <ActionFeedback key={moveFeedback ? `${moveFeedback.kind}:${moveFeedback.sequence}` : 'no-feedback'} feedback={moveFeedback} />
         <div className="board-column">
-          <PlayerGraveyard army={farArmy} pieces={displayState.board.capturedByArmy[farArmy]} materialDelta={materialDelta[farArmy]} eligiblePieceIds={reviewingHistory ? [] : reinforcementOptions.map((option) => option.pieceId)} selectedPieceId={pendingReinforcementPieceId ?? null} onSelect={toggleReinforcementPiece} />
-          <ChessBoard fen={displayView.board.fen} perspective={nearArmy} interactionLocked={activeCardDrag !== null || reviewingHistory || pendingPromotion !== null} legalMoves={reviewingHistory ? [] : legalMoves} selectedSquare={reviewingHistory ? null : selectedSquare} legalTargets={reviewingHistory ? [] : legalTargets} onMove={requestMove} onSquareClick={chooseSquare} />
-          <PlayerGraveyard army={nearArmy} pieces={displayState.board.capturedByArmy[nearArmy]} materialDelta={materialDelta[nearArmy]} eligiblePieceIds={reviewingHistory ? [] : reinforcementOptions.map((option) => option.pieceId)} selectedPieceId={pendingReinforcementPieceId ?? null} onSelect={toggleReinforcementPiece} />
+          <PlayerGraveyard army={farArmy} pieces={displayState.board.capturedByArmy[farArmy]} materialDelta={materialDelta[farArmy]} eligiblePieceIds={reviewingHistory ? [] : reinforcementOptions.map((option) => option.pieceId).filter((id) => !assignedReinforcementIds.includes(id))} selectedPieceId={selectedReinforcementPieceId} onSelect={toggleReinforcementPiece} />
+          <ChessBoard fen={displayView.board.fen} activePieces={displayState.board.activePieces} perspective={nearArmy} interactionLocked={activeCardDrag !== null || reviewingHistory || pendingPromotion !== null} legalMoves={reviewingHistory ? [] : legalMoves} selectedSquare={reviewingHistory ? null : selectedSquare} legalTargets={reviewingHistory ? [] : legalTargets} ghostPieces={reviewingHistory ? [] : reinforcementGhosts} onMove={requestMove} onSquareClick={chooseSquare} />
+          <PlayerGraveyard army={nearArmy} pieces={displayState.board.capturedByArmy[nearArmy]} materialDelta={materialDelta[nearArmy]} eligiblePieceIds={reviewingHistory ? [] : reinforcementOptions.map((option) => option.pieceId).filter((id) => !assignedReinforcementIds.includes(id))} selectedPieceId={selectedReinforcementPieceId} onSelect={toggleReinforcementPiece} />
         </div>
         <CardPlayZone active={activeCardDrag !== null} ready={activeCardDrag?.overDropZone ?? false} />
       </section>
@@ -146,15 +158,11 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
       <div className="hand-heading"><div><p className="eyebrow">{playerName(state.activePlayerId)}</p><h2>你的手牌</h2></div><span>{view.self.hand.length}/{state.rules.hand.maximumSize} 張</span></div>
       <CardHand cards={view.self.hand} playableCardIds={playableCardIds} unavailableReasonByCardId={unavailableReasonByCardId} onCommit={playCard} onDragStateChange={setActiveCardDrag} />
       <section className="card-controls" aria-label="卡牌操作">
-      {state.turn.phase === 'await-action-move' ? <button onClick={finishAction}>提前結束行動牌</button> : null}
+      {state.turn.phase === 'await-action-move' ? <button disabled={state.turn.actionsUsed < state.turn.actionMinimum} onClick={finishAction}>{state.turn.actionMinimum === 0 && state.turn.actionsUsed === 0 ? '不移動，直接結束回合' : '提前結束連續行動'}</button> : null}
       {state.turn.phase === 'await-effect-choice' && state.turn.pendingEffect?.kind === 'wild-color' ? <div className="color-choice" aria-label="選擇新的牌色">
         {(['red', 'yellow', 'green', 'blue'] as CardColor[]).map((color) => <button className={color} key={color} onClick={() => chooseWildColor(color)}>{cardColorName(color)}</button>)}
       </div> : null}
-      {state.turn.phase === 'await-effect-choice' && state.turn.pendingEffect?.kind === 'reinforce' ? <div className="reinforcement-choice" aria-label="選擇援軍">
-        <p>最多選擇 {state.rules.reinforce.maximumPieces} 枚被吃掉的棋子，再依序放到亮起的格子。</p>
-        {reinforcementOptions.map((option) => <button aria-pressed={reinforcementPieceIds.includes(option.pieceId)} disabled={reinforcementSquares.length > 0} key={option.pieceId} onClick={() => toggleReinforcementPiece(option.pieceId)}>復活{pieceName(option.kind)}</button>)}
-        <button disabled={reinforcementPieceIds.length === 0 || reinforcementPieceIds.length !== reinforcementSquares.length} onClick={confirmReinforcement}>確認援軍位置</button>
-      </div> : null}
+      {state.turn.phase === 'await-effect-choice' && state.turn.pendingEffect?.kind === 'reinforce' ? <ReinforcementTray army={nearArmy} maximumPieces={reinforcementMaximum} activePiece={pendingReinforcement ? { pieceId: pendingReinforcement.pieceId, kind: pendingReinforcement.kind as ChessPieceKind } : null} assignments={reinforcementAssignments} onCancelSelection={() => setSelectedReinforcementPieceId(null)} onUndo={(pieceId) => setReinforcementAssignments((assignments) => assignments.filter((assignment) => assignment.pieceId !== pieceId))} onReset={() => { setReinforcementAssignments([]); setSelectedReinforcementPieceId(null) }} onConfirm={confirmReinforcement} /> : null}
       </section>
     </section>
   </main>

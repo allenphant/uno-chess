@@ -22,6 +22,7 @@ export function positionKey(state: GameState): string {
       drewCard: state.turn.drewCard,
       playedCardId: state.turn.playedCardId,
       actionBudget: state.turn.actionBudget,
+      actionMinimum: state.turn.actionMinimum,
       actionsUsed: state.turn.actionsUsed,
       pendingEffect: state.turn.pendingEffect,
     },

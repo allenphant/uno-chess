@@ -30,4 +30,10 @@ describe('game board and card geometry', () => {
     expect(css).toContain('.card-play-zone { position: absolute; inset: 0;')
     expect(css).toContain('.piece.dragging')
   })
+
+  it('animates stable piece transforms for 220ms and disables them for reduced motion', () => {
+    expect(css).toContain('.piece-layer')
+    expect(css).toMatch(/\.piece-sprite[^}]+transition: transform 220ms/)
+    expect(css).toMatch(/prefers-reduced-motion: reduce[\s\S]+\.piece-sprite[^}]+transition: none/)
+  })
 })

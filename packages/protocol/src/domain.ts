@@ -3,7 +3,7 @@ export type ArmyColor = 'white' | 'black'
 export type CardColor = 'red' | 'yellow' | 'green' | 'blue'
 export type PieceKind = 'p' | 'n' | 'b' | 'r' | 'q'
 
-export const coreCardKinds = ['action-2', 'action-3', 'reinforce', 'seal', 'reverse', 'betray'] as const
+export const coreCardKinds = ['action-2', 'action-3', 'reinforce-1', 'reinforce', 'seal', 'reverse', 'betray'] as const
 export type CoreCardKind = typeof coreCardKinds[number]
 export type CardKind = string
 export type CardId = string
@@ -16,11 +16,11 @@ export interface CardInstance {
 }
 
 export type EffectOperationSpec =
-  | { type: 'start-action'; budget: 2 | 3 }
+  | { type: 'start-action'; budget: 1 | 2 | 3; minimumMoves: 0 | 1 }
   | { type: 'set-status'; target: 'opponent'; status: 'sealed'; turns: 1 }
   | { type: 'swap-hands' }
   | { type: 'swap-army-controllers' }
-  | { type: 'request-reinforcement' }
+  | { type: 'request-reinforcement'; maximumPieces: 1 | 2 }
   | { type: 'request-wild-color' }
   | { type: 'draw-cards'; target: 'self' | 'opponent'; count: number }
   | { type: 'end-turn' }
@@ -114,10 +114,11 @@ export interface TurnState {
   phase: TurnPhase
   drewCard: boolean
   playedCardId: CardId | null
-  actionBudget: 0 | 2 | 3
+  actionBudget: 0 | 1 | 2 | 3
+  actionMinimum: 0 | 1
   actionsUsed: number
   pendingEffect: null
-    | { kind: 'reinforce'; cardId: CardId; nextOperationIndex: number }
+    | { kind: 'reinforce'; cardId: CardId; nextOperationIndex: number; maximumPieces: 1 | 2 }
     | { kind: 'wild-color'; cardId: CardId; nextOperationIndex: number }
 }
 

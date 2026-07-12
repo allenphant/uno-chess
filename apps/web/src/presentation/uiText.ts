@@ -3,6 +3,7 @@ import type { CardColor, CardKind, GameState, PlayerId } from '@uno-chess/protoc
 export const cardNames: Record<string, string> = {
   'action-2': '行動牌 2',
   'action-3': '行動牌 3',
+  'reinforce-1': '援軍 +1',
   reinforce: '援軍 +2',
   seal: '封印',
   reverse: '交換',
@@ -48,7 +49,8 @@ export function turnGuideText(state: GameState): string {
   if (state.turn.phase === 'await-overflow-discard') return '手牌已滿，請選一張牌棄掉。'
   if (state.turn.phase === 'await-action' && state.players[state.activePlayerId]?.statuses.some((status) => status.kind === 'sealed')) return '手牌已被封印，本回合請移動一枚棋子。'
   if (state.turn.phase === 'await-action') return '請打出一張可用手牌，或直接移動一枚棋子。'
-  if (state.turn.phase === 'await-action-move') return `行動牌生效中，還能移動 ${state.turn.actionBudget - state.turn.actionsUsed} 次。`
+  if (state.turn.phase === 'await-action-move' && state.turn.actionMinimum === 0) return `封印已生效：還可移動 ${state.turn.actionBudget - state.turn.actionsUsed} 步，或直接結束回合。`
+  if (state.turn.phase === 'await-action-move') return `連續行動中，還能移動 ${state.turn.actionBudget - state.turn.actionsUsed} 步。`
   if (state.turn.pendingEffect?.kind === 'wild-color') return '請選擇新的牌色。'
   if (state.turn.pendingEffect?.kind === 'reinforce') return '請選擇要復活的棋子，再放到亮起的格子。'
   return '請完成目前的效果選擇。'

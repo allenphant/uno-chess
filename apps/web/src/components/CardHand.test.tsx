@@ -9,7 +9,7 @@ import { CardHand } from './CardHand.js'
 afterEach(cleanup)
 
 const testCard: CardInstance = { id: 'action-2:red:test', kind: 'action-2', color: 'red' }
-const cardName = '紅色行動牌 2，最多移動兩次'
+const cardName = '紅色行動牌 2，啟動連續行動，出牌後必須移動 1～2 步'
 const TestableCardHand = CardHand as unknown as ComponentType<{
   cards: CardInstance[]
   playableCardIds: string[]

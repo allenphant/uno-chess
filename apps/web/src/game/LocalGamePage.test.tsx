@@ -26,7 +26,7 @@ describe('LocalGamePage', () => {
     await userEvent.click(screen.getByRole('gridcell', { name: 'e2' }))
     await userEvent.click(screen.getByRole('gridcell', { name: 'e4' }))
 
-    expect(screen.getByRole('gridcell', { name: 'e4' }).querySelector('.piece.white')).toBeTruthy()
+    expect(screen.getByTestId('board').querySelector('.piece.white[data-square="e4"]')).toBeTruthy()
     await waitFor(() => expect(screen.getByText('輪到玩家 2')).toBeTruthy())
   })
 
@@ -39,11 +39,11 @@ describe('LocalGamePage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: '回到開局' }))
     expect(screen.getByText('正在查看開局')).toBeTruthy()
-    expect(screen.getByRole('gridcell', { name: 'e2' }).querySelector('.piece.white')).toBeTruthy()
+    expect(screen.getByTestId('board').querySelector('.piece.white[data-square="e2"]')).toBeTruthy()
     expect(screen.getByRole('gridcell', { name: 'e2' }).hasAttribute('disabled')).toBe(true)
 
     await userEvent.click(screen.getByRole('button', { name: '回到目前局面' }))
     expect(screen.queryByText('正在查看開局')).toBeNull()
-    expect(screen.getByRole('gridcell', { name: 'e4' }).querySelector('.piece.white')).toBeTruthy()
+    expect(screen.getByTestId('board').querySelector('.piece.white[data-square="e4"]')).toBeTruthy()
   })
 })
