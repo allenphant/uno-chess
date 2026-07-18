@@ -18,6 +18,8 @@ const TestableCardHand = CardHand as unknown as ComponentType<{
   onDragStateChange: () => void
   discardMode?: boolean
   onDiscard?: (cardId: string) => void
+  onDiscardDrop?: (cardId: string) => void
+  selectedDiscardCardId?: string | null
   selectedCardId?: string | null
   onSelect?: (cardId: string) => void
 }>
@@ -65,21 +67,43 @@ describe('CardHand', () => {
     expect(card.getAttribute('aria-pressed')).toBe('false')
   })
 
-  it('discards the clicked card directly when the hand is in discard mode', async () => {
-    const onDiscard = vi.fn()
+  it('selects a clicked card for confirmation without discarding it immediately', async () => {
+    const onDiscardSelect = vi.fn()
+    const onDiscardDrop = vi.fn()
     render(<TestableCardHand
       {...legacyProps}
       cards={[testCard]}
       playableCardIds={[]}
       unavailableReasonByCardId={{}}
       onCommit={() => undefined}
-      onDiscard={onDiscard}
+      onDiscard={onDiscardSelect}
+      onDiscardDrop={onDiscardDrop}
       onDragStateChange={() => undefined}
       discardMode
     />)
 
     await userEvent.click(screen.getByRole('button', { name: `棄掉${cardName}` }))
 
-    expect(onDiscard).toHaveBeenCalledWith(testCard.id)
+    expect(onDiscardSelect).toHaveBeenCalledWith(testCard.id)
+    expect(onDiscardDrop).not.toHaveBeenCalled()
+  })
+
+  it('visually marks the card currently awaiting discard confirmation', () => {
+    render(<TestableCardHand
+      {...legacyProps}
+      cards={[testCard]}
+      playableCardIds={[]}
+      unavailableReasonByCardId={{}}
+      onCommit={() => undefined}
+      onDiscard={() => undefined}
+      onDiscardDrop={() => undefined}
+      onDragStateChange={() => undefined}
+      discardMode
+      selectedDiscardCardId={testCard.id}
+    />)
+
+    const card = screen.getByRole('button', { name: `棄掉${cardName}` })
+    expect(card.getAttribute('aria-pressed')).toBe('true')
+    expect(card.classList.contains('discard-selected')).toBe(true)
   })
 })

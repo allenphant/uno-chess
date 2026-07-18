@@ -28,6 +28,7 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
   const { state, view, error, events, checkpoints, dispatch, nextIntentId } = useLocalGame(seed)
   const [historySequence, setHistorySequence] = useState<number | null>(null)
   const [activeCardDrag, setActiveCardDrag] = useState<CardDragVisualState | null>(null)
+  const [pendingDiscardCardId, setPendingDiscardCardId] = useState<string | null>(null)
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null)
   const [selectedReinforcementPieceId, setSelectedReinforcementPieceId] = useState<string | null>(null)
   const [reinforcementAssignments, setReinforcementAssignments] = useState<ReinforcementAssignment[]>([])
@@ -45,6 +46,8 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
   const blackLost = displayState.board.capturedByArmy.black.reduce((total, piece) => total + materialValue(piece.kind), 0)
   const materialDelta = { white: Math.max(0, blackLost - whiteLost), black: Math.max(0, whiteLost - blackLost) }
   const cardsSealed = state.players[state.activePlayerId]?.statuses.some((status) => status.kind === 'sealed') ?? false
+  const discardingOverflow = state.turn.phase === 'await-overflow-discard'
+  const pendingDiscardCard = view.self.hand.find((card) => card.id === pendingDiscardCardId) ?? null
   const playableCardIds = !reviewingHistory && pendingPromotion === null && state.turn.phase === 'await-action' && !cardsSealed && state.discardFace
     ? view.self.hand.filter((card) => canPlayCard(card, state.discardFace!, state.rules)).map((card) => card.id)
     : []
@@ -67,6 +70,7 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
 
   useEffect(() => {
     setActiveCardDrag(null)
+    setPendingDiscardCardId(null)
     setSelectedSquare(null)
     setSelectedReinforcementPieceId(null)
     setReinforcementAssignments([])
@@ -153,28 +157,30 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
           <ActionFeedback key={moveFeedback ? `${moveFeedback.kind}:${moveFeedback.sequence}` : 'no-feedback'} feedback={moveFeedback} />
           <div className="board-column">
             <PlayerGraveyard army={farArmy} pieces={displayState.board.capturedByArmy[farArmy]} materialDelta={materialDelta[farArmy]} eligiblePieceIds={reviewingHistory ? [] : reinforcementOptions.map((option) => option.pieceId).filter((id) => !assignedReinforcementIds.includes(id))} selectedPieceId={selectedReinforcementPieceId} onSelect={toggleReinforcementPiece} />
-            <ChessBoard fen={displayView.board.fen} activePieces={displayState.board.activePieces} perspective={nearArmy} interactionLocked={activeCardDrag !== null || reviewingHistory || pendingPromotion !== null} legalMoves={reviewingHistory ? [] : legalMoves} selectedSquare={reviewingHistory ? null : selectedSquare} legalTargets={reviewingHistory ? [] : legalTargets} ghostPieces={reviewingHistory ? [] : reinforcementGhosts} onMove={requestMove} onSquareClick={chooseSquare} />
+          <ChessBoard fen={displayView.board.fen} activePieces={displayState.board.activePieces} perspective={nearArmy} interactionLocked={discardingOverflow || activeCardDrag !== null || reviewingHistory || pendingPromotion !== null} legalMoves={reviewingHistory ? [] : legalMoves} selectedSquare={reviewingHistory ? null : selectedSquare} legalTargets={reviewingHistory ? [] : legalTargets} ghostPieces={reviewingHistory ? [] : reinforcementGhosts} onMove={requestMove} onSquareClick={chooseSquare} />
             <PlayerGraveyard army={nearArmy} pieces={displayState.board.capturedByArmy[nearArmy]} materialDelta={materialDelta[nearArmy]} eligiblePieceIds={reviewingHistory ? [] : reinforcementOptions.map((option) => option.pieceId).filter((id) => !assignedReinforcementIds.includes(id))} selectedPieceId={selectedReinforcementPieceId} onSelect={toggleReinforcementPiece} />
           </div>
-          <CardPlayZone active={activeCardDrag !== null} ready={activeCardDrag?.overDropZone ?? false} />
+          <CardPlayZone active={discardingOverflow || activeCardDrag !== null} ready={activeCardDrag?.overDropZone ?? false} mode={discardingOverflow ? 'discard' : 'play'} />
         </section>
-        <section className={`player-zone${state.turn.phase === 'await-overflow-discard' ? ' discarding' : ''}`} aria-label="目前玩家操作區">
+        <section className={`player-zone${discardingOverflow ? ' discarding' : ''}`} aria-label="目前玩家操作區">
           <div className="hand-heading">
             <div>
               <p className="eyebrow">{playerName(state.activePlayerId)} · 手牌</p>
-              <h2>{state.turn.phase === 'await-overflow-discard' ? '手牌已滿，選一張棄掉' : '挑一張，拖到棋盤上'}</h2>
+              <h2>{discardingOverflow ? pendingDiscardCard ? '確認要棄掉這張牌' : '手牌已滿，選一張棄掉' : '挑一張，拖到棋盤上'}</h2>
             </div>
             <span><strong>{view.self.hand.length}</strong> / {state.rules.hand.maximumSize} 張</span>
           </div>
-          {state.turn.phase === 'await-overflow-discard' ? <OverflowDiscard /> : null}
+          {discardingOverflow ? <OverflowDiscard selectedCard={pendingDiscardCard} onCancel={() => setPendingDiscardCardId(null)} onConfirm={() => { if (pendingDiscardCardId) discardOverflow(pendingDiscardCardId) }} /> : null}
           <CardHand
             cards={view.self.hand}
             playableCardIds={playableCardIds}
             unavailableReasonByCardId={unavailableReasonByCardId}
             onCommit={playCard}
-            onDiscard={discardOverflow}
+            onDiscard={setPendingDiscardCardId}
+            onDiscardDrop={discardOverflow}
             onDragStateChange={setActiveCardDrag}
-            discardMode={state.turn.phase === 'await-overflow-discard'}
+            discardMode={discardingOverflow}
+            selectedDiscardCardId={pendingDiscardCardId}
           />
           <section className="card-controls" aria-label="卡牌操作">
           {state.turn.phase === 'await-action-move' ? <button disabled={state.turn.actionsUsed < state.turn.actionMinimum} onClick={finishAction}>{state.turn.actionMinimum === 0 && state.turn.actionsUsed === 0 ? '不移動，直接結束回合' : '提前結束連續行動'}</button> : null}
