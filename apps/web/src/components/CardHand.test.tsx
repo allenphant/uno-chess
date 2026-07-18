@@ -16,6 +16,8 @@ const TestableCardHand = CardHand as unknown as ComponentType<{
   unavailableReasonByCardId: Partial<Record<string, string>>
   onCommit: (cardId: string) => void
   onDragStateChange: () => void
+  discardMode?: boolean
+  onDiscard?: (cardId: string) => void
   selectedCardId?: string | null
   onSelect?: (cardId: string) => void
 }>
@@ -61,5 +63,23 @@ describe('CardHand', () => {
     await userEvent.click(screen.getByRole('button', { name: '棋盤外' }))
 
     expect(card.getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('discards the clicked card directly when the hand is in discard mode', async () => {
+    const onDiscard = vi.fn()
+    render(<TestableCardHand
+      {...legacyProps}
+      cards={[testCard]}
+      playableCardIds={[]}
+      unavailableReasonByCardId={{}}
+      onCommit={() => undefined}
+      onDiscard={onDiscard}
+      onDragStateChange={() => undefined}
+      discardMode
+    />)
+
+    await userEvent.click(screen.getByRole('button', { name: `棄掉${cardName}` }))
+
+    expect(onDiscard).toHaveBeenCalledWith(testCard.id)
   })
 })

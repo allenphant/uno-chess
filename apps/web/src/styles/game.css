@@ -256,6 +256,12 @@ button,
   align-items: start;
 }
 
+.game-play-column {
+  display: grid;
+  min-width: 0;
+  gap: 1rem;
+}
+
 .board-stage { position: relative;
   display: grid;
   min-width: 0;
@@ -592,7 +598,6 @@ button,
 
 .turn-panel,
 .discard-summary,
-.overflow-discard,
 .move-history {
   border: 1px solid var(--line);
   border-radius: .9rem;
@@ -906,17 +911,8 @@ button,
   cursor: pointer;
 }
 
-.overflow-discard {
-  padding: .9rem;
-}
-
-.overflow-discard p {
-  margin-top: 0;
-}
-
 .turn-panel button,
-.card-controls button,
-.overflow-discard button {
+.card-controls button {
   border: 0;
   border-radius: .6rem;
   padding: .7rem .95rem;
@@ -925,13 +921,6 @@ button,
   font-weight: 850;
   box-shadow: 0 .23rem 0 var(--gold-deep);
   cursor: pointer;
-}
-
-.overflow-discard button {
-  margin: .2rem;
-  color: white;
-  background: #d94d5f;
-  box-shadow: none;
 }
 
 .turn-panel button:active,
@@ -950,7 +939,6 @@ button,
 
 .player-zone {
   position: relative;
-  margin-top: 1rem;
   overflow: hidden;
   padding: .9rem 1rem .75rem;
   border: 1px solid #ffffff17;
@@ -959,6 +947,11 @@ button,
     linear-gradient(120deg, #282550e6 0, #191833eb 70%),
     var(--ink);
   box-shadow: 0 1.1rem 2.8rem #08081657, inset 0 1px #ffffff13;
+}
+
+.player-zone.discarding {
+  border-color: #ffdd7991;
+  box-shadow: 0 1.1rem 2.8rem #08081657, inset 0 1px #ffffff25, 0 0 0 .18rem #ffcf4d1c;
 }
 
 .player-zone::before {
@@ -995,6 +988,54 @@ button,
   font-family: Rockwell, Georgia, serif;
   font-size: 1.15rem;
   font-variant-numeric: tabular-nums;
+}
+
+.hand-discard-notice {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  margin: .7rem .35rem .15rem;
+  padding: .62rem .72rem;
+  border: 1px solid #ffdc7c54;
+  border-radius: .72rem;
+  color: #fff6d2;
+  background: linear-gradient(100deg, #67431fcf, #292346b3);
+  box-shadow: inset 0 1px #ffffff16;
+}
+
+.hand-discard-notice > span {
+  display: grid;
+  place-items: center;
+  flex: 0 0 2rem;
+  width: 2rem;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  color: #2d210d;
+  background: var(--gold);
+  font-size: 1.15rem;
+  font-weight: 950;
+  box-shadow: 0 .16rem 0 var(--gold-deep);
+  animation: discard-nudge 1.25s ease-in-out infinite;
+}
+
+.hand-discard-notice > div {
+  display: grid;
+  gap: .08rem;
+}
+
+.hand-discard-notice strong {
+  font-size: .82rem;
+}
+
+.hand-discard-notice small {
+  color: #d8d0b4;
+  font-size: .65rem;
+}
+
+@keyframes discard-nudge {
+  0%,
+  100% { transform: translateY(-.1rem); }
+  50% { transform: translateY(.13rem); }
 }
 
 .hand {
@@ -1048,6 +1089,11 @@ button,
 .card.playable {
   cursor: grab;
   touch-action: none;
+}
+
+.card.discardable {
+  cursor: pointer;
+  filter: saturate(1.04);
 }
 
 .card.unplayable {
@@ -1199,6 +1245,17 @@ button,
   filter: saturate(1.12) brightness(1.08);
   transform: translateY(calc(var(--card-arc) - .62rem)) rotate(0deg) scale(1.035);
   box-shadow: 0 .7rem 0 #0808165e, 0 1.15rem 1.8rem #080816b5, inset 0 0 0 .13rem #ffffff62;
+}
+
+.card.discardable:hover {
+  z-index: 8;
+  filter: saturate(1.18) brightness(1.12);
+  transform: translateY(calc(var(--card-arc) - .7rem)) rotate(0deg) scale(1.045);
+  box-shadow:
+    0 0 0 .18rem #ffd666,
+    0 .7rem 0 #0808165e,
+    0 1.15rem 1.8rem #080816b5,
+    inset 0 0 0 .13rem #ffffff62;
 }
 
 .card.previewing {
@@ -1385,8 +1442,7 @@ button,
 
 .promotion-chooser button:hover,
 .graveyard-pieces button:hover,
-.card-controls button:hover:not(:disabled),
-.overflow-discard button:hover {
+.card-controls button:hover:not(:disabled) {
   filter: brightness(1.1);
 }
 
@@ -1643,6 +1699,14 @@ button,
 
   .hand-heading h2 {
     font-size: 1.03rem;
+  }
+
+  .hand-discard-notice {
+    margin-inline: .2rem;
+  }
+
+  .hand-discard-notice small {
+    display: none;
   }
 
   .hand {

@@ -146,20 +146,47 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
     </header>
     <TurnGuide state={displayState} />
     <div className="game-arena">
-      <section className="board-stage" data-testid="board-stage" id="game-board" aria-label="對戰棋盤">
-        {reviewingHistory ? <div className="history-mode" role="status"><span>{historySequence === 0 ? '正在查看開局' : `正在查看第 ${historySequence} 個事件`}</span><button onClick={() => setHistorySequence(null)}>回到目前局面</button></div> : null}
-        {pendingPromotion ? <PromotionChooser army={nearArmy} from={pendingPromotion.from} to={pendingPromotion.to} options={pendingPromotion.options} onChoose={(piece) => commitMove(pendingPromotion.from, pendingPromotion.to, piece)} onCancel={() => setPendingPromotion(null)} /> : null}
-        <ActionFeedback key={moveFeedback ? `${moveFeedback.kind}:${moveFeedback.sequence}` : 'no-feedback'} feedback={moveFeedback} />
-        <div className="board-column">
-          <PlayerGraveyard army={farArmy} pieces={displayState.board.capturedByArmy[farArmy]} materialDelta={materialDelta[farArmy]} eligiblePieceIds={reviewingHistory ? [] : reinforcementOptions.map((option) => option.pieceId).filter((id) => !assignedReinforcementIds.includes(id))} selectedPieceId={selectedReinforcementPieceId} onSelect={toggleReinforcementPiece} />
-          <ChessBoard fen={displayView.board.fen} activePieces={displayState.board.activePieces} perspective={nearArmy} interactionLocked={activeCardDrag !== null || reviewingHistory || pendingPromotion !== null} legalMoves={reviewingHistory ? [] : legalMoves} selectedSquare={reviewingHistory ? null : selectedSquare} legalTargets={reviewingHistory ? [] : legalTargets} ghostPieces={reviewingHistory ? [] : reinforcementGhosts} onMove={requestMove} onSquareClick={chooseSquare} />
-          <PlayerGraveyard army={nearArmy} pieces={displayState.board.capturedByArmy[nearArmy]} materialDelta={materialDelta[nearArmy]} eligiblePieceIds={reviewingHistory ? [] : reinforcementOptions.map((option) => option.pieceId).filter((id) => !assignedReinforcementIds.includes(id))} selectedPieceId={selectedReinforcementPieceId} onSelect={toggleReinforcementPiece} />
-        </div>
-        <CardPlayZone active={activeCardDrag !== null} ready={activeCardDrag?.overDropZone ?? false} />
-      </section>
+      <div className="game-play-column">
+        <section className="board-stage" data-testid="board-stage" id="game-board" aria-label="對戰棋盤">
+          {reviewingHistory ? <div className="history-mode" role="status"><span>{historySequence === 0 ? '正在查看開局' : `正在查看第 ${historySequence} 個事件`}</span><button onClick={() => setHistorySequence(null)}>回到目前局面</button></div> : null}
+          {pendingPromotion ? <PromotionChooser army={nearArmy} from={pendingPromotion.from} to={pendingPromotion.to} options={pendingPromotion.options} onChoose={(piece) => commitMove(pendingPromotion.from, pendingPromotion.to, piece)} onCancel={() => setPendingPromotion(null)} /> : null}
+          <ActionFeedback key={moveFeedback ? `${moveFeedback.kind}:${moveFeedback.sequence}` : 'no-feedback'} feedback={moveFeedback} />
+          <div className="board-column">
+            <PlayerGraveyard army={farArmy} pieces={displayState.board.capturedByArmy[farArmy]} materialDelta={materialDelta[farArmy]} eligiblePieceIds={reviewingHistory ? [] : reinforcementOptions.map((option) => option.pieceId).filter((id) => !assignedReinforcementIds.includes(id))} selectedPieceId={selectedReinforcementPieceId} onSelect={toggleReinforcementPiece} />
+            <ChessBoard fen={displayView.board.fen} activePieces={displayState.board.activePieces} perspective={nearArmy} interactionLocked={activeCardDrag !== null || reviewingHistory || pendingPromotion !== null} legalMoves={reviewingHistory ? [] : legalMoves} selectedSquare={reviewingHistory ? null : selectedSquare} legalTargets={reviewingHistory ? [] : legalTargets} ghostPieces={reviewingHistory ? [] : reinforcementGhosts} onMove={requestMove} onSquareClick={chooseSquare} />
+            <PlayerGraveyard army={nearArmy} pieces={displayState.board.capturedByArmy[nearArmy]} materialDelta={materialDelta[nearArmy]} eligiblePieceIds={reviewingHistory ? [] : reinforcementOptions.map((option) => option.pieceId).filter((id) => !assignedReinforcementIds.includes(id))} selectedPieceId={selectedReinforcementPieceId} onSelect={toggleReinforcementPiece} />
+          </div>
+          <CardPlayZone active={activeCardDrag !== null} ready={activeCardDrag?.overDropZone ?? false} />
+        </section>
+        <section className={`player-zone${state.turn.phase === 'await-overflow-discard' ? ' discarding' : ''}`} aria-label="目前玩家操作區">
+          <div className="hand-heading">
+            <div>
+              <p className="eyebrow">{playerName(state.activePlayerId)} · 手牌</p>
+              <h2>{state.turn.phase === 'await-overflow-discard' ? '手牌已滿，選一張棄掉' : '挑一張，拖到棋盤上'}</h2>
+            </div>
+            <span><strong>{view.self.hand.length}</strong> / {state.rules.hand.maximumSize} 張</span>
+          </div>
+          {state.turn.phase === 'await-overflow-discard' ? <OverflowDiscard /> : null}
+          <CardHand
+            cards={view.self.hand}
+            playableCardIds={playableCardIds}
+            unavailableReasonByCardId={unavailableReasonByCardId}
+            onCommit={playCard}
+            onDiscard={discardOverflow}
+            onDragStateChange={setActiveCardDrag}
+            discardMode={state.turn.phase === 'await-overflow-discard'}
+          />
+          <section className="card-controls" aria-label="卡牌操作">
+          {state.turn.phase === 'await-action-move' ? <button disabled={state.turn.actionsUsed < state.turn.actionMinimum} onClick={finishAction}>{state.turn.actionMinimum === 0 && state.turn.actionsUsed === 0 ? '不移動，直接結束回合' : '提前結束連續行動'}</button> : null}
+          {state.turn.phase === 'await-effect-choice' && state.turn.pendingEffect?.kind === 'wild-color' ? <div className="color-choice" aria-label="選擇新的牌色">
+            {(['red', 'yellow', 'green', 'blue'] as CardColor[]).map((color) => <button className={color} key={color} onClick={() => chooseWildColor(color)}>{cardColorName(color)}</button>)}
+          </div> : null}
+          {state.turn.phase === 'await-effect-choice' && state.turn.pendingEffect?.kind === 'reinforce' ? <ReinforcementTray army={nearArmy} maximumPieces={reinforcementMaximum} activePiece={pendingReinforcement ? { pieceId: pendingReinforcement.pieceId, kind: pendingReinforcement.kind as ChessPieceKind } : null} assignments={reinforcementAssignments} onCancelSelection={() => setSelectedReinforcementPieceId(null)} onUndo={(pieceId) => setReinforcementAssignments((assignments) => assignments.filter((assignment) => assignment.pieceId !== pieceId))} onReset={() => { setReinforcementAssignments([]); setSelectedReinforcementPieceId(null) }} onConfirm={confirmReinforcement} /> : null}
+          </section>
+        </section>
+      </div>
       <aside className="match-sidebar" data-testid="match-sidebar" aria-label="對局資訊">
         <TurnPanel state={displayState} error={error} />
-        {state.turn.phase === 'await-overflow-discard' ? <OverflowDiscard cards={view.self.hand} onDiscard={discardOverflow} /> : null}
         <div className={`discard-summary ${state.discardFace?.color ?? 'wild'}`}>
           <div>
             <span>目前牌面</span>
@@ -170,19 +197,5 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
         <MoveHistory entries={timeline} selectedSequence={historySequence} onNavigate={setHistorySequence} />
       </aside>
     </div>
-    <section className="player-zone" aria-label="目前玩家操作區">
-      <div className="hand-heading">
-        <div><p className="eyebrow">{playerName(state.activePlayerId)} · 手牌</p><h2>挑一張，拖到棋盤上</h2></div>
-        <span><strong>{view.self.hand.length}</strong> / {state.rules.hand.maximumSize} 張</span>
-      </div>
-      <CardHand cards={view.self.hand} playableCardIds={playableCardIds} unavailableReasonByCardId={unavailableReasonByCardId} onCommit={playCard} onDragStateChange={setActiveCardDrag} />
-      <section className="card-controls" aria-label="卡牌操作">
-      {state.turn.phase === 'await-action-move' ? <button disabled={state.turn.actionsUsed < state.turn.actionMinimum} onClick={finishAction}>{state.turn.actionMinimum === 0 && state.turn.actionsUsed === 0 ? '不移動，直接結束回合' : '提前結束連續行動'}</button> : null}
-      {state.turn.phase === 'await-effect-choice' && state.turn.pendingEffect?.kind === 'wild-color' ? <div className="color-choice" aria-label="選擇新的牌色">
-        {(['red', 'yellow', 'green', 'blue'] as CardColor[]).map((color) => <button className={color} key={color} onClick={() => chooseWildColor(color)}>{cardColorName(color)}</button>)}
-      </div> : null}
-      {state.turn.phase === 'await-effect-choice' && state.turn.pendingEffect?.kind === 'reinforce' ? <ReinforcementTray army={nearArmy} maximumPieces={reinforcementMaximum} activePiece={pendingReinforcement ? { pieceId: pendingReinforcement.pieceId, kind: pendingReinforcement.kind as ChessPieceKind } : null} assignments={reinforcementAssignments} onCancelSelection={() => setSelectedReinforcementPieceId(null)} onUndo={(pieceId) => setReinforcementAssignments((assignments) => assignments.filter((assignment) => assignment.pieceId !== pieceId))} onReset={() => { setReinforcementAssignments([]); setSelectedReinforcementPieceId(null) }} onConfirm={confirmReinforcement} /> : null}
-      </section>
-    </section>
   </main>
 }

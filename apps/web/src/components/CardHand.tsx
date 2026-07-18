@@ -11,9 +11,11 @@ export interface CardHandProps {
   unavailableReasonByCardId: Partial<Record<string, string>>
   onCommit: (cardId: string) => void
   onDragStateChange: (state: CardDragVisualState | null) => void
+  discardMode?: boolean
+  onDiscard?: (cardId: string) => void
 }
 
-export function CardHand({ cards, playableCardIds, unavailableReasonByCardId, onCommit, onDragStateChange }: CardHandProps) {
+export function CardHand({ cards, playableCardIds, unavailableReasonByCardId, onCommit, onDragStateChange, discardMode = false, onDiscard }: CardHandProps) {
   const [previewedCardId, setPreviewedCardId] = useState<string | null>(null)
   const handRef = useRef<HTMLElement>(null)
 
@@ -25,13 +27,19 @@ export function CardHand({ cards, playableCardIds, unavailableReasonByCardId, on
     return () => document.removeEventListener('pointerdown', closeOutside)
   }, [])
 
-  return <section className="hand" aria-label="你的手牌" ref={handRef}>
+  useEffect(() => {
+    if (discardMode) setPreviewedCardId(null)
+  }, [discardMode])
+
+  return <section className={`hand${discardMode ? ' discard-mode' : ''}`} aria-label={discardMode ? '選擇要棄掉的手牌' : '你的手牌'} ref={handRef}>
     {cards.map((card, index) => <DraggableCard
       card={card}
       cardCount={cards.length}
       cardIndex={index}
+      discardMode={discardMode}
       key={card.id}
       onCommit={onCommit}
+      onDiscard={onDiscard}
       onDragStateChange={onDragStateChange}
       onPreview={() => setPreviewedCardId((current) => current === card.id ? null : card.id)}
       playable={playableCardIds.includes(card.id)}
@@ -41,11 +49,13 @@ export function CardHand({ cards, playableCardIds, unavailableReasonByCardId, on
   </section>
 }
 
-function DraggableCard({ card, cardCount, cardIndex, onCommit, onDragStateChange, onPreview, playable, previewing, unavailableReason }: {
+function DraggableCard({ card, cardCount, cardIndex, discardMode, onCommit, onDiscard, onDragStateChange, onPreview, playable, previewing, unavailableReason }: {
   card: CardInstance
   cardCount: number
   cardIndex: number
+  discardMode: boolean
   onCommit: (cardId: string) => void
+  onDiscard: ((cardId: string) => void) | undefined
   onDragStateChange: (state: CardDragVisualState | null) => void
   onPreview: () => void
   playable: boolean
@@ -55,7 +65,7 @@ function DraggableCard({ card, cardCount, cardIndex, onCommit, onDragStateChange
   const wasDraggedRef = useRef(false)
   const drag = useCardDrag({
     cardId: card.id,
-    enabled: playable,
+    enabled: playable && !discardMode,
     onCommit,
     onStateChange: (state) => {
       if (state) wasDraggedRef.current = true
@@ -71,18 +81,22 @@ function DraggableCard({ card, cardCount, cardIndex, onCommit, onDragStateChange
   const classes = [
     'card',
     card.color ?? 'wild',
-    playable ? 'playable' : 'unplayable',
+    discardMode ? 'discardable' : playable ? 'playable' : 'unplayable',
     previewing ? 'previewing' : '',
     drag.dragging ? 'dragging' : '',
   ].filter(Boolean).join(' ')
 
   return <button
-    aria-disabled={!playable}
-    aria-label={cardAccessibleLabel(card)}
-    aria-pressed={previewing}
+    aria-disabled={!discardMode && !playable}
+    aria-label={discardMode ? `棄掉${cardAccessibleLabel(card)}` : cardAccessibleLabel(card)}
+    aria-pressed={discardMode ? undefined : previewing}
     className={classes}
     style={cardStyle}
     onClick={() => {
+      if (discardMode) {
+        onDiscard?.(card.id)
+        return
+      }
       if (wasDraggedRef.current) {
         wasDraggedRef.current = false
         return
@@ -95,6 +109,6 @@ function DraggableCard({ card, cardCount, cardIndex, onCommit, onDragStateChange
     onPointerUp={drag.onPointerUp}
   >
     <CardFace card={card} />
-    {previewing && unavailableReason ? <span className="card-unavailable-reason">{unavailableReason}</span> : null}
+    {!discardMode && previewing && unavailableReason ? <span className="card-unavailable-reason">{unavailableReason}</span> : null}
   </button>
 }
