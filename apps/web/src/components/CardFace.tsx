@@ -19,9 +19,13 @@ export function cardAccessibleLabel(card: CardInstance): string {
 export function CardFace({ card }: { card: CardInstance }) {
   const detail = cardDetails[card.kind] ?? { symbol: '✦', effect: '特殊效果', movement: '結算方式依規則' }
   return <span className="card-face" aria-hidden="true">
-    <span className="card-title"><i className="card-color-dot" />{cardName(card.kind)}</span>
-    <strong className="card-symbol">{detail.symbol}</strong>
-    <span className="card-effect">{detail.effect}</span>
-    <span className="card-movement">{detail.movement}</span>
+    <span className="card-corner card-corner-top" data-symbol={detail.symbol}><i className="card-color-dot" /></span>
+    <span className="card-title">{cardName(card.kind)}</span>
+    <span className="card-orbit"><strong className="card-symbol">{detail.symbol}</strong></span>
+    <span className="card-rules">
+      <span className="card-effect">{detail.effect}</span>
+      <span className="card-movement">{detail.movement}</span>
+    </span>
+    <span className="card-corner card-corner-bottom" data-symbol={detail.symbol}><i className="card-color-dot" /></span>
   </span>
 }

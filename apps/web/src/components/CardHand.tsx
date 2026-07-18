@@ -26,8 +26,10 @@ export function CardHand({ cards, playableCardIds, unavailableReasonByCardId, on
   }, [])
 
   return <section className="hand" aria-label="你的手牌" ref={handRef}>
-    {cards.map((card) => <DraggableCard
+    {cards.map((card, index) => <DraggableCard
       card={card}
+      cardCount={cards.length}
+      cardIndex={index}
       key={card.id}
       onCommit={onCommit}
       onDragStateChange={onDragStateChange}
@@ -39,8 +41,10 @@ export function CardHand({ cards, playableCardIds, unavailableReasonByCardId, on
   </section>
 }
 
-function DraggableCard({ card, onCommit, onDragStateChange, onPreview, playable, previewing, unavailableReason }: {
+function DraggableCard({ card, cardCount, cardIndex, onCommit, onDragStateChange, onPreview, playable, previewing, unavailableReason }: {
   card: CardInstance
+  cardCount: number
+  cardIndex: number
   onCommit: (cardId: string) => void
   onDragStateChange: (state: CardDragVisualState | null) => void
   onPreview: () => void
@@ -58,7 +62,12 @@ function DraggableCard({ card, onCommit, onDragStateChange, onPreview, playable,
       onDragStateChange(state)
     },
   })
-  const dragStyle = drag.offset ? { '--drag-x': `${drag.offset.x}px`, '--drag-y': `${drag.offset.y}px` } as CSSProperties : undefined
+  const distanceFromCenter = cardIndex - (cardCount - 1) / 2
+  const cardStyle = {
+    '--card-angle': `${Math.max(-4.5, Math.min(4.5, distanceFromCenter * 1.6))}deg`,
+    '--card-arc': `${Math.abs(distanceFromCenter) * 3}px`,
+    ...(drag.offset ? { '--drag-x': `${drag.offset.x}px`, '--drag-y': `${drag.offset.y}px` } : {}),
+  } as CSSProperties
   const classes = [
     'card',
     card.color ?? 'wild',
@@ -72,7 +81,7 @@ function DraggableCard({ card, onCommit, onDragStateChange, onPreview, playable,
     aria-label={cardAccessibleLabel(card)}
     aria-pressed={previewing}
     className={classes}
-    {...(dragStyle ? { style: dragStyle } : {})}
+    style={cardStyle}
     onClick={() => {
       if (wasDraggedRef.current) {
         wasDraggedRef.current = false

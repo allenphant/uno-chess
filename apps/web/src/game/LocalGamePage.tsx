@@ -133,10 +133,20 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
   }
 
   return <main className="game-shell">
-    <header className="game-masthead"><div className="brand-mark">U+C</div><div><p className="eyebrow">本機對戰</p><h1>UNO 西洋棋</h1></div></header>
+    <a className="skip-link" href="#game-board">跳到棋盤</a>
+    <header className="game-masthead">
+      <div className="brand-lockup">
+        <div className="brand-mark" aria-hidden="true"><span>U</span><i>×</i><span>♟</span></div>
+        <div><p className="eyebrow">王牌棋局 · UNO × CLASSIC CHESS</p><h1>UNO 西洋棋</h1></div>
+      </div>
+      <div className="match-badges" aria-label="對局模式">
+        <span>本機雙人</span>
+        <span>經典規則</span>
+      </div>
+    </header>
     <TurnGuide state={displayState} />
     <div className="game-arena">
-      <section className="board-stage" data-testid="board-stage" aria-label="對戰棋盤">
+      <section className="board-stage" data-testid="board-stage" id="game-board" aria-label="對戰棋盤">
         {reviewingHistory ? <div className="history-mode" role="status"><span>{historySequence === 0 ? '正在查看開局' : `正在查看第 ${historySequence} 個事件`}</span><button onClick={() => setHistorySequence(null)}>回到目前局面</button></div> : null}
         {pendingPromotion ? <PromotionChooser army={nearArmy} from={pendingPromotion.from} to={pendingPromotion.to} options={pendingPromotion.options} onChoose={(piece) => commitMove(pendingPromotion.from, pendingPromotion.to, piece)} onCancel={() => setPendingPromotion(null)} /> : null}
         <ActionFeedback key={moveFeedback ? `${moveFeedback.kind}:${moveFeedback.sequence}` : 'no-feedback'} feedback={moveFeedback} />
@@ -150,12 +160,21 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
       <aside className="match-sidebar" data-testid="match-sidebar" aria-label="對局資訊">
         <TurnPanel state={displayState} error={error} />
         {state.turn.phase === 'await-overflow-discard' ? <OverflowDiscard cards={view.self.hand} onDiscard={discardOverflow} /> : null}
-        <div className="discard-summary"><span>目前牌面</span><strong>{state.discardFace ? `${cardColorName(state.discardFace.color)} ${cardName(state.discardFace.kind)}` : '尚無牌面'}</strong></div>
+        <div className={`discard-summary ${state.discardFace?.color ?? 'wild'}`}>
+          <div>
+            <span>目前牌面</span>
+            <strong>{state.discardFace ? `${cardColorName(state.discardFace.color)} ${cardName(state.discardFace.kind)}` : '尚無牌面'}</strong>
+          </div>
+          <div className="discard-glyph" aria-hidden="true">{state.discardFace ? cardName(state.discardFace.kind).replace('行動牌 ', '') : '—'}</div>
+        </div>
         <MoveHistory entries={timeline} selectedSequence={historySequence} onNavigate={setHistorySequence} />
       </aside>
     </div>
     <section className="player-zone" aria-label="目前玩家操作區">
-      <div className="hand-heading"><div><p className="eyebrow">{playerName(state.activePlayerId)}</p><h2>你的手牌</h2></div><span>{view.self.hand.length}/{state.rules.hand.maximumSize} 張</span></div>
+      <div className="hand-heading">
+        <div><p className="eyebrow">{playerName(state.activePlayerId)} · 手牌</p><h2>挑一張，拖到棋盤上</h2></div>
+        <span><strong>{view.self.hand.length}</strong> / {state.rules.hand.maximumSize} 張</span>
+      </div>
       <CardHand cards={view.self.hand} playableCardIds={playableCardIds} unavailableReasonByCardId={unavailableReasonByCardId} onCommit={playCard} onDragStateChange={setActiveCardDrag} />
       <section className="card-controls" aria-label="卡牌操作">
       {state.turn.phase === 'await-action-move' ? <button disabled={state.turn.actionsUsed < state.turn.actionMinimum} onClick={finishAction}>{state.turn.actionMinimum === 0 && state.turn.actionsUsed === 0 ? '不移動，直接結束回合' : '提前結束連續行動'}</button> : null}
