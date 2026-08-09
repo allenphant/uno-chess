@@ -186,6 +186,27 @@ button,
   white-space: nowrap;
 }
 
+.exit-match {
+  border: 1px solid #ffffff1f;
+  border-radius: 999px;
+  padding: .42rem .68rem;
+  color: var(--paper-muted);
+  background: #ffffff0b;
+  font-size: .62rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.exit-match:hover {
+  color: white;
+  background: #ffffff14;
+}
+
+.exit-match:focus-visible {
+  outline: .14rem solid var(--gold);
+  outline-offset: .12rem;
+}
+
 .match-badges span:first-child::before {
   display: inline-block;
   width: .42rem;

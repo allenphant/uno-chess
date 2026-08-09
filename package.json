@@ -15,7 +15,9 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present -- --run",
     "test:e2e": "playwright test",
-    "dev:web": "npm run dev --workspace @uno-chess/web"
+    "dev:web": "npm run dev --workspace @uno-chess/web",
+    "dev:server": "npm run dev --workspace @uno-chess/server",
+    "test:server": "npm run test --workspace @uno-chess/server -- --run"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",

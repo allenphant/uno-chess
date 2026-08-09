@@ -35,6 +35,8 @@ jobs:
         run: npm test
 
       - name: Build site
+        env:
+          VITE_GAME_SERVER_URL: ${{ vars.GAME_SERVER_URL }}
         run: |
           npm run build
           npm exec --workspace @uno-chess/web -- vite build --base=/${{ github.event.repository.name }}/

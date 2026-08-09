@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: uno-chess-server-allenphant
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start --workspace @uno-chess/server
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 24.14.0
+      - key: WEB_ORIGIN
+        value: https://allenphant.github.io

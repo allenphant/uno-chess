@@ -22,9 +22,10 @@ import { materialValue } from '../presentation/chessPieces.js'
 
 export interface LocalGamePageProps {
   seed: string
+  onExit?: () => void
 }
 
-export function LocalGamePage({ seed }: LocalGamePageProps) {
+export function LocalGamePage({ seed, onExit }: LocalGamePageProps) {
   const { state, view, error, events, checkpoints, dispatch, nextIntentId } = useLocalGame(seed)
   const [historySequence, setHistorySequence] = useState<number | null>(null)
   const [activeCardDrag, setActiveCardDrag] = useState<CardDragVisualState | null>(null)
@@ -146,6 +147,7 @@ export function LocalGamePage({ seed }: LocalGamePageProps) {
       <div className="match-badges" aria-label="對局模式">
         <span>本機雙人</span>
         <span>經典規則</span>
+        {onExit ? <button className="exit-match" onClick={onExit}>返回大廳</button> : null}
       </div>
     </header>
     <TurnGuide state={displayState} />
